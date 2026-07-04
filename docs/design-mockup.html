@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Email Automation — UI/UX Design System</title>
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  /* Primary */
+  --blue-50:  #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-200: #bfdbfe;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+
+  /* Success */
+  --green-50:  #f0fdf4;
+  --green-100: #dcfce7;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+
+  /* Warning */
+  --amber-50:  #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+
+  /* Error */
+  --red-50:  #fef2f2;
+  --red-100: #fee2e2;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+
+  /* Neutral */
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+
+  /* Semantic */
+  --color-primary:       var(--blue-600);
+  --color-primary-hover: var(--blue-700);
+  --color-primary-light: var(--blue-50);
+  --color-success:       var(--green-600);
+  --color-success-light: var(--green-50);
+  --color-warning:       var(--amber-600);
+  --color-warning-light: var(--amber-50);
+  --color-error:         var(--red-600);
+  --color-error-light:   var(--red-50);
+
+  /* Surfaces */
+  --bg-app:        #f1f5f9;
+  --bg-surface:    #ffffff;
+  --bg-elevated:   #ffffff;
+  --border:        var(--slate-200);
+  --border-focus:  var(--blue-500);
+
+  /* Text */
+  --text-primary:   var(--slate-800);
+  --text-secondary: var(--slate-500);
+  --text-tertiary:  var(--slate-400);
+  --text-inverse:   #ffffff;
+
+  /* Typography */
+  --font-sans:      -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
+  --font-mono:      'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace;
+  --text-xs:        0.75rem;
+  --text-sm:        0.875rem;
+  --text-base:      0.9375rem;
+  --text-lg:        1.125rem;
+  --text-xl:        1.25rem;
+  --text-2xl:       1.5rem;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.04);
+}
+
+/* ============================================================
+   GLOBAL RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: #e8ecf1;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   PRESENTATION LAYOUT
+   ============================================================ */
+.pres-header {
+  background: linear-gradient(135deg, var(--slate-900) 0%, var(--slate-800) 100%);
+  color: white;
+  padding: 48px 40px 40px;
+  text-align: center;
+}
+.pres-header .badge { display:inline-block; background:rgba(255,255,255,0.12); color:var(--blue-200); padding:4px 12px; border-radius:99px; font-size:var(--text-xs); font-weight:600; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:16px; }
+.pres-header h1 { font-size:2.25rem; font-weight:700; letter-spacing:-0.02em; margin-bottom:8px; }
+.pres-header p  { color: var(--slate-400); font-size: var(--text-lg); max-width: 560px; margin: 0 auto; }
+
+.pres-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 4px;
+  padding: 0 32px;
+  overflow-x: auto;
+  box-shadow: var(--shadow-xs);
+}
+.pres-nav a {
+  display: inline-block; padding: 12px 16px;
+  font-size: var(--text-sm); font-weight: 500;
+  color: var(--text-secondary); text-decoration: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.pres-nav a:hover, .pres-nav a.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+.pres-section { max-width: 960px; margin: 0 auto; padding: 48px 32px; }
+.pres-section h2 { font-size: 1.5rem; font-weight: 700; letter-spacing:-0.01em; margin-bottom: 6px; }
+.pres-section .sec-desc { color: var(--text-secondary); font-size: var(--text-base); margin-bottom: 32px; }
+
+/* ============================================================
+   TOKEN CARDS
+   ============================================================ */
+.token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.token-card { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); background: var(--bg-surface); }
+.token-card .swatch { height: 64px; }
+.token-card .info { padding: 10px 12px; }
+.token-card .info .name { font-size: var(--text-xs); font-weight: 600; color: var(--text-primary); }
+.token-card .info .hex { font-size: var(--text-xs); color: var(--text-tertiary); font-family: var(--font-mono); }
+
+.type-scale { display: flex; flex-direction: column; gap: 16px; }
+.type-row { display: flex; align-items: baseline; gap: 24px; padding: 12px 16px; border-bottom: 1px solid var(--slate-100); }
+.type-row .sample { flex: 1; }
+.type-row .label { font-size: var(--text-xs); color: var(--text-tertiary); font-family: var(--font-mono); min-width: 100px; }
+
+.shadow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.shadow-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; text-align: center; font-size: var(--text-sm); color: var(--text-secondary); }
+
+/* ============================================================
+   COMPONENT SHOWCASE
+   ============================================================ */
+.comp-group { margin-bottom: 32px; }
+.comp-group h3 { font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px; }
+.comp-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-md);
+  font-family: var(--font-sans); font-size: var(--text-sm); font-weight: 500;
+  border: 1px solid transparent; cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+.btn-primary  { background: var(--color-primary); color: white; }
+.btn-primary:hover  { background: var(--color-primary-hover); }
+.btn-secondary { background: var(--bg-surface); color: var(--text-primary); border-color: var(--border); }
+.btn-secondary:hover { background: var(--slate-50); border-color: var(--slate-300); }
+.btn-ghost    { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover    { background: var(--slate-100); color: var(--text-primary); }
+.btn-danger   { background: var(--color-error); color: white; }
+.btn-danger:hover   { background: #b91c1c; }
+.btn-success  { background: var(--color-success); color: white; }
+.btn-success:hover  { background: var(--green-700); }
+
+.btn-sm  { padding: 5px 10px; font-size: var(--text-xs); }
+.btn-lg  { padding: 10px 20px; font-size: var(--text-base); }
+
+/* Inputs */
+.input {
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  font-family: var(--font-sans); font-size: var(--text-sm); color: var(--text-primary);
+  background: var(--bg-surface); width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+.input::placeholder { color: var(--text-tertiary); }
+.input:read-only { background: var(--slate-50); color: var(--text-secondary); }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 99px;
+  font-size: var(--text-xs); font-weight: 600;
+}
+.badge-success { background: var(--color-success-light); color: var(--color-success); }
+.badge-warning { background: var(--color-warning-light); color: var(--color-warning); }
+.badge-error   { background: var(--color-error-light);   color: var(--color-error); }
+.badge-info    { background: var(--color-primary-light);  color: var(--color-primary); }
+
+/* Card / Section */
+.card {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px;
+}
+.card-header { font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing:0.04em; margin-bottom: 12px; display:flex; align-items:center; gap:8px; }
+.card-header .icon { width:16px; height:16px; opacity:0.5; }
+
+/* Step indicator */
+.steps { display: flex; gap: 0; margin-bottom: 24px; }
+.step { display: flex; align-items: center; gap: 8px; flex: 1; }
+.step .circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); font-weight: 700; border: 2px solid var(--border); color: var(--text-tertiary); background: var(--bg-surface); flex-shrink: 0; }
+.step.active .circle { border-color: var(--color-primary); background: var(--color-primary); color: white; }
+.step.done .circle { border-color: var(--color-success); background: var(--color-success); color: white; }
+.step .step-label { font-size: var(--text-xs); font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
+.step.active .step-label { color: var(--color-primary); font-weight: 600; }
+.step.done .step-label { color: var(--color-success); }
+.step .connector { flex: 1; height: 2px; background: var(--border); margin: 0 4px; }
+.step.done .connector { background: var(--color-success); }
+.step:last-child .connector { display: none; }
+
+/* ============================================================
+   SCREEN MOCKUPS
+   ============================================================ */
+.mockup-container {
+  display: flex; justify-content: center;
+}
+.mockup-window {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  width: 100%; max-width: 700px;
+}
+.mockup-window.wide { max-width: 740px; }
+.mockup-window.small { max-width: 460px; }
+
+.mockup-titlebar {
+  background: var(--slate-100);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+  position: relative;
+}
+.mockup-titlebar .dots { display: flex; gap: 6px; }
+.mockup-titlebar .spacer { display: flex; gap: 6px; visibility: hidden; }
+.mockup-titlebar .dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-red    { background: #ef4444; }
+.dot-yellow { background: #f59e0b; }
+.dot-green  { background: #6ee7b7; }
+.mockup-titlebar .title { font-size: var(--text-xs); color: var(--text-secondary); flex:1; text-align:center; font-weight:500; }
+
+.mockup-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; background: var(--bg-app); }
+.mockup-body.flat { background: var(--bg-surface); }
+
+/* Card sections inside mockups */
+.m-card {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 16px;
+}
+.m-card-header { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+
+/* Row inside card */
+.m-row { display: flex; gap: 8px; align-items: center; }
+.m-row > .input { flex: 1; }
+
+/* Status bar */
+.m-status {
+  padding: 6px 16px; background: var(--slate-50); border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-tertiary);
+  display: flex; align-items: center; gap: 8px;
+}
+.m-status .dot-live { width: 6px; height: 6px; border-radius: 50%; background: var(--color-success); }
+
+/* Log area */
+.m-log {
+  background: var(--slate-900); color: #e2e8f0; border-radius: var(--radius-md);
+  padding: 10px 14px; font-family: var(--font-mono); font-size: 11px;
+  min-height: 60px; max-height: 100px; overflow-y: auto;
+  border: 1px solid var(--slate-700);
+}
+.m-log .line { line-height: 1.6; }
+.m-log .ts { color: var(--slate-500); margin-right: 8px; }
+.m-log .ok { color: #6ee7b7; }
+.m-log .err { color: #fca5a5; }
+
+/* Progress */
+.m-progress-track { background: var(--slate-200); border-radius: 99px; height: 6px; overflow: hidden; }
+.m-progress-fill { background: var(--color-primary); height: 100%; border-radius: 99px; width: 65%; transition: width 0.3s; }
+
+/* Dialog inner */
+.dialog-content { display: flex; flex-direction: column; gap: 16px; }
+.dialog-content h3 { font-size: var(--text-lg); font-weight: 600; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--slate-100); }
+
+/* Preview split */
+.preview-split { display: flex; gap: 12px; min-height: 300px; }
+.preview-list { width: 180px; border: 1px solid var(--border); border-radius: var(--radius-md); overflow-y: auto; background: var(--bg-surface); }
+.preview-list .item { padding: 8px 12px; font-size: var(--text-sm); border-bottom: 1px solid var(--slate-100); cursor: pointer; }
+.preview-list .item.active { background: var(--color-primary-light); color: var(--color-primary); font-weight: 500; }
+.preview-body { flex: 1; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; background: white; overflow-y: auto; }
+
+/* Confirmation stats */
+.confirm-stats {
+  background: var(--slate-50); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px 20px; font-family: var(--font-mono); font-size: 13px;
+  text-align: center; line-height: 1.8;
+}
+.confirm-stats .divider { color: var(--slate-300); }
+.confirm-stats .num { font-weight: 700; color: var(--text-primary); }
+.confirm-stats .pass { color: var(--color-success); font-weight: 600; }
+.confirm-stats .fail { color: var(--color-error); font-weight: 600; }
+
+/* Radio group */
+.radio-group { display: flex; flex-direction: column; gap: 8px; }
+.radio-option {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md);
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.radio-option:hover { background: var(--slate-50); }
+.radio-option.selected { border-color: var(--color-primary); background: var(--color-primary-light); }
+.radio-option input[type=radio] { margin-top: 2px; accent-color: var(--color-primary); }
+.radio-option .ro-body { flex:1; }
+.radio-option .ro-title { font-weight: 500; font-size: var(--text-sm); }
+.radio-option .ro-desc { font-size: var(--text-xs); color: var(--text-secondary); margin-top: 2px; }
+
+/* Validation result */
+.val-pass { color: var(--color-success); }
+.val-fail { color: var(--color-error); }
+.val-detail { background: var(--slate-50); border:1px solid var(--border); border-radius:var(--radius-md); padding:12px; font-size:var(--text-sm); max-height:200px; overflow-y:auto; }
+
+/* ============================================================
+   WIZARD FLOW DIAGRAM
+   ============================================================ */
+.flow-diagram { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; padding: 24px 0; }
+.flow-node { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 18px; font-size: var(--text-sm); font-weight: 500; white-space: nowrap; box-shadow: var(--shadow-xs); }
+.flow-arrow { color: var(--slate-400); font-size: 18px; }
+
+.screen-label {
+  font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 8px; text-align: center;
+}
+
+/* ============================================================
+   COMPARISON: BEFORE / AFTER
+   ============================================================ */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.compare-col h4 { font-size: var(--text-sm); font-weight: 600; margin-bottom: 12px; display:flex; align-items:center; gap:6px; }
+.compare-col .mockup-window { box-shadow: var(--shadow-md); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 800px) {
+  .pres-section { padding: 32px 16px; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .preview-split { flex-direction: column; }
+  .preview-list { width: 100%; max-height: 120px; }
+  .token-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="pres-header">
+  <div class="badge">Design System v1.0</div>
+  <h1>Exam Result Email Automation</h1>
+  <p>UI/UX redesign for the Registrar Office desktop application — a clean, professional tool for university staff.</p>
+</header>
+
+<nav class="pres-nav">
+  <a href="#tokens">Tokens</a>
+  <a href="#components">Components</a>
+  <a href="#main-empty">Main: Empty</a>
+  <a href="#main-loaded">Main: Loaded</a>
+  <a href="#preview">Preview</a>
+  <a href="#validation">Validation</a>
+  <a href="#delivery-method">Delivery Method</a>
+  <a href="#delivery-mode">Delivery Mode</a>
+  <a href="#confirmation">Confirmation</a>
+  <a href="#results">Results</a>
+  <a href="#flow">Flow</a>
+</nav>
+
+<!-- ============================================================
+     DESIGN TOKENS
+     ============================================================ -->
+<section id="tokens" class="pres-section">
+  <h2>🎨 Design Tokens</h2>
+  <p class="sec-desc">The foundational design primitives — colors, typography, spacing, and elevation. Maps directly to QSS variables for implementation.</p>
+
+  <h3 style="font-size:var(--text-sm);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Color Palette</h3>
+  <div class="token-grid">
+    <div class="token-card"><div class="swatch" style="background:var(--blue-600)"></div><div class="info"><div class="name">Primary</div><div class="hex">#2563eb</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--blue-700)"></div><div class="info"><div class="name">Primary Hover</div><div class="hex">#1d4ed8</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--blue-50)"></div><div class="info"><div class="name">Primary Light</div><div class="hex">#eff6ff</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--green-600)"></div><div class="info"><div class="name">Success</div><div class="hex">#16a34a</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--amber-600)"></div><div class="info"><div class="name">Warning</div><div class="hex">#d97706</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--red-600)"></div><div class="info"><div class="name">Error</div><div class="hex">#dc2626</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--slate-800)"></div><div class="info"><div class="name">Text Primary</div><div class="hex">#1e293b</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--slate-500)"></div><div class="info"><div class="name">Text Secondary</div><div class="hex">#64748b</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--bg-app)"></div><div class="info"><div class="name">App Background</div><div class="hex">#f1f5f9</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--bg-surface)"></div><div class="info"><div class="name">Surface</div><div class="hex">#ffffff</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--border)"></div><div class="info"><div class="name">Border</div><div class="hex">#e2e8f0</div></div></div>
+    <div class="token-card"><div class="swatch" style="background:var(--slate-900)"></div><div class="info"><div class="name">Log Background</div><div class="hex">#0f172a</div></div></div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-top:32px;">
+    <div>
+      <h3 style="font-size:var(--text-sm);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Typography</h3>
+      <div class="type-scale">
+        <div class="type-row"><span class="label">text-xs 12px</span><span class="sample" style="font-size:12px">Badge & caption text</span></div>
+        <div class="type-row"><span class="label">text-sm 14px</span><span class="sample" style="font-size:14px">Button labels, secondary text</span></div>
+        <div class="type-row"><span class="label">text-base 15px</span><span class="sample" style="font-size:15px">Body text, input values</span></div>
+        <div class="type-row"><span class="label">text-lg 18px</span><span class="sample" style="font-size:18px;font-weight:600">Dialog titles</span></div>
+        <div class="type-row"><span class="label">text-2xl 24px</span><span class="sample" style="font-size:24px;font-weight:700">App title / hero</span></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:var(--text-sm);font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Elevation / Shadows</h3>
+      <div class="shadow-grid">
+        <div class="shadow-card" style="box-shadow:var(--shadow-xs)">xs — subtle lift</div>
+        <div class="shadow-card" style="box-shadow:var(--shadow-sm)">sm — card edge</div>
+        <div class="shadow-card" style="box-shadow:var(--shadow-md)">md — hover state</div>
+        <div class="shadow-card" style="box-shadow:var(--shadow-lg)">lg — dropdown</div>
+        <div class="shadow-card" style="box-shadow:var(--shadow-xl)">xl — modal/dialog</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     COMPONENT LIBRARY
+     ============================================================ -->
+<section id="components" class="pres-section">
+  <h2>🧩 Component Library</h2>
+  <p class="sec-desc">Reusable UI components with all variant states. These map 1:1 to styled Qt widgets via QSS.</p>
+
+  <div class="comp-group">
+    <h3>Buttons</h3>
+    <div class="comp-row">
+      <button class="btn btn-primary">Primary</button>
+      <button class="btn btn-secondary">Secondary</button>
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn btn-danger">Danger</button>
+      <button class="btn btn-success">Success</button>
+    </div>
+    <div class="comp-row" style="margin-top:8px;">
+      <button class="btn btn-primary btn-lg">Large Primary</button>
+      <button class="btn btn-secondary btn-sm">Small Secondary</button>
+      <button class="btn btn-primary" disabled>Disabled</button>
+    </div>
+  </div>
+
+  <div class="comp-group">
+    <h3>Input Fields</h3>
+    <div class="comp-row">
+      <input class="input" value="Selected file path..." readonly style="max-width:340px;">
+      <input class="input" placeholder="Type something..." style="max-width:340px;">
+    </div>
+  </div>
+
+  <div class="comp-group">
+    <h3>Badges / Status Indicators</h3>
+    <div class="comp-row">
+      <span class="badge badge-success">✓ Pass</span>
+      <span class="badge badge-warning">⚠ Warning</span>
+      <span class="badge badge-error">✗ Error</span>
+      <span class="badge badge-info">ℹ Info</span>
+      <span class="badge badge-info">12 vars detected</span>
+    </div>
+  </div>
+
+  <div class="comp-group">
+    <h3>Step Indicator (Wizard Progress)</h3>
+    <div class="steps">
+      <div class="step done"><span class="circle">✓</span><span class="step-label">Validate</span><span class="connector"></span></div>
+      <div class="step done"><span class="circle">✓</span><span class="step-label">Method</span><span class="connector"></span></div>
+      <div class="step active"><span class="circle">3</span><span class="step-label">Mode</span><span class="connector"></span></div>
+      <div class="step"><span class="circle">4</span><span class="step-label">Confirm</span><span class="connector"></span></div>
+      <div class="step"><span class="circle">5</span><span class="step-label">Results</span></div>
+    </div>
+  </div>
+
+  <div class="comp-group">
+    <h3>Radio Options (Delivery Mode)</h3>
+    <div class="radio-group" style="max-width:420px;">
+      <label class="radio-option">
+        <input type="radio" name="demo-mode" checked>
+        <div class="ro-body"><div class="ro-title">Preview Only</div><div class="ro-desc">Generate HTML previews without sending any emails</div></div>
+      </label>
+      <label class="radio-option selected">
+        <input type="radio" name="demo-mode" checked>
+        <div class="ro-body"><div class="ro-title">Create Outlook Drafts</div><div class="ro-desc">Create unsent draft emails in Outlook for review before sending</div></div>
+      </label>
+      <label class="radio-option">
+        <input type="radio" name="demo-mode">
+        <div class="ro-body"><div class="ro-title">Send Immediately</div><div class="ro-desc">Send emails directly to students without further confirmation</div></div>
+      </label>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 1: MAIN WINDOW — EMPTY STATE
+     ============================================================ -->
+<section id="main-empty" class="pres-section">
+  <h2>📺 Screen 1 — Main Window (Empty State)</h2>
+  <p class="sec-desc">The initial view when the app launches. Clean onboarding state with clear calls-to-action. Log and progress sections are hidden until data is loaded.</p>
+
+  <div class="mockup-container">
+    <div class="mockup-window">
+      <div class="mockup-titlebar"><div class="dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div><span class="title">Exam Result Email Automation</span><div class="spacer"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      <div class="mockup-body">
+
+        <!-- Template card -->
+        <div class="m-card">
+          <div class="m-card-header">📄 Email Template (.docx)</div>
+          <div class="m-row">
+            <input class="input" placeholder="Upload a Word template with {{variables}}..." readonly>
+            <button class="btn btn-secondary btn-sm">Browse…</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--text-tertiary)">Clear</button>
+          </div>
+        </div>
+
+        <!-- Excel card -->
+        <div class="m-card">
+          <div class="m-card-header">📊 Excel File</div>
+          <div class="m-row">
+            <input class="input" placeholder="Browse for student results spreadsheet (.xlsx)..." readonly>
+            <button class="btn btn-secondary btn-sm">Browse…</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--text-tertiary)">Clear</button>
+          </div>
+        </div>
+
+        <!-- Attachments card -->
+        <div class="m-card">
+          <div class="m-card-header">📎 Attachments <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+          <div class="m-row">
+            <input class="input" placeholder="No file selected" readonly>
+            <button class="btn btn-secondary btn-sm">Browse…</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--text-tertiary)">Clear</button>
+          </div>
+        </div>
+
+        <!-- Actions card -->
+        <div class="m-card">
+          <div class="m-card-header">⚡ Actions</div>
+          <div class="comp-row">
+            <button class="btn btn-primary" disabled style="opacity:0.5">▶ Preview Emails</button>
+            <button class="btn btn-secondary" disabled style="opacity:0.5">✉ Send Test Email</button>
+            <button class="btn btn-secondary" disabled style="opacity:0.5">📨 Send All Emails</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="m-status"><span class="dot-live"></span> Ready — upload a template and Excel file to begin</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 2: MAIN WINDOW — LOADED STATE
+     ============================================================ -->
+<section id="main-loaded" class="pres-section">
+  <h2>📺 Screen 2 — Main Window (Data Loaded)</h2>
+  <p class="sec-desc">After template and Excel are loaded. Variable badges show extracted fields, actions are enabled, and the log becomes visible with progress feedback.</p>
+
+  <div class="mockup-container">
+    <div class="mockup-window">
+      <div class="mockup-titlebar"><div class="dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div><span class="title">Exam Result Email Automation</span><div class="spacer"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      <div class="mockup-body">
+
+        <!-- Template card — loaded -->
+        <div class="m-card">
+          <div class="m-card-header">📄 Email Template (.docx) <span class="badge badge-info" style="margin-left:8px;">12 vars detected</span></div>
+          <div class="m-row">
+            <input class="input" value="exam_results_template.docx" readonly>
+            <button class="btn btn-ghost btn-sm" style="color:var(--color-error)">Clear</button>
+          </div>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">
+            <span class="badge badge-info">student_name</span>
+            <span class="badge badge-info">student_id</span>
+            <span class="badge badge-info">programme</span>
+            <span class="badge badge-info">module_code</span>
+            <span class="badge badge-info">module_title</span>
+            <span class="badge badge-info">grade</span>
+            <span class="badge badge-info">status</span>
+            <span class="badge badge-info">semester</span>
+            <span class="badge badge-info">academic_year</span>
+            <span class="badge badge-info">email</span>
+            <span class="badge badge-info">attempt</span>
+            <span class="badge badge-info">exam_date</span>
+          </div>
+        </div>
+
+        <!-- Excel card — loaded -->
+        <div class="m-card">
+          <div class="m-card-header">📊 Excel File <span class="badge badge-success" style="margin-left:8px;">✓ 48 Students</span></div>
+          <div class="m-row">
+            <input class="input" value="exam_results_2025.xlsx" readonly>
+            <button class="btn btn-ghost btn-sm" style="color:var(--color-error)">Clear</button>
+          </div>
+        </div>
+
+        <!-- Attachments card -->
+        <div class="m-card">
+          <div class="m-card-header">📎 Attachments</div>
+          <div class="m-row">
+            <input class="input" placeholder="No file selected" readonly>
+            <button class="btn btn-secondary btn-sm">Browse…</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--text-tertiary)">Clear</button>
+          </div>
+        </div>
+
+        <!-- Actions card — enabled -->
+        <div class="m-card">
+          <div class="m-card-header">⚡ Actions</div>
+          <div class="comp-row">
+            <button class="btn btn-primary">▶ Preview Emails</button>
+            <button class="btn btn-secondary">✉ Send Test Email</button>
+            <button class="btn btn-secondary">📨 Send All Emails</button>
+          </div>
+        </div>
+
+        <!-- Progress — now visible -->
+        <div class="m-card">
+          <div class="m-card-header">📈 Progress</div>
+          <div class="m-progress-track"><div class="m-progress-fill"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:var(--text-xs);color:var(--text-secondary);">
+            <span>31 / 48 emails sent</span><span>65%</span>
+          </div>
+        </div>
+
+        <!-- Log — now visible -->
+        <div class="m-card">
+          <div class="m-card-header">📋 Log</div>
+          <div class="m-log">
+            <div class="line"><span class="ts">14:32:01</span> <span class="ok">✓</span> john.smith@university.edu — sent</div>
+            <div class="line"><span class="ts">14:32:01</span> <span class="ok">✓</span> jane.doe@university.edu — sent</div>
+            <div class="line"><span class="ts">14:32:02</span> <span class="err">✗</span> invalid.email — skipped (invalid email)</div>
+            <div class="line"><span class="ts">14:32:02</span> <span class="ok">✓</span> a.patel@university.edu — sent</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="m-status"><span class="dot-live"></span> Sending in progress — 31 of 48 completed</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 3: PREVIEW DIALOG
+     ============================================================ -->
+<section id="preview" class="pres-section">
+  <h2>📺 Screen 3 — Email Preview Dialog</h2>
+  <p class="sec-desc">Split-pane preview: student list on the left, rendered HTML email on the right. The active student is highlighted in blue.</p>
+
+  <div class="mockup-container">
+    <div class="mockup-window wide">
+      <div class="mockup-titlebar"><div class="dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div><span class="title">Email Preview</span><div class="spacer"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      <div class="mockup-body flat" style="padding:16px;">
+        <div class="dialog-content">
+          <p style="font-size:var(--text-sm);color:var(--text-secondary);">Select a student to preview the generated email.</p>
+          <div class="preview-split">
+            <div class="preview-list">
+              <div class="item active">John Smith</div>
+              <div class="item">Jane Doe</div>
+              <div class="item">Amit Patel</div>
+              <div class="item">Sarah Wilson</div>
+              <div class="item">Chen Wei</div>
+              <div class="item">Maria Garcia</div>
+              <div class="item">James Brown</div>
+              <div class="item">Aisha Khan</div>
+            </div>
+            <div class="preview-body">
+              <div style="margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--slate-100);">
+                <div style="font-weight:600;font-size:var(--text-sm);">To: john.smith@university.edu</div>
+                <div style="font-size:12px;color:var(--text-secondary);">Subject: Exam Results — COMP301: Advanced Algorithms (Semester 1, 2025)</div>
+              </div>
+              <div style="font-size:14px;line-height:1.6;">
+                <p>Dear John Smith,</p>
+                <p style="margin-top:8px;">Your results for <strong>COMP301: Advanced Algorithms</strong> are now available.</p>
+                <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:13px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
+                  <tr style="background:#f8fafc;"><td style="padding:8px 12px;font-weight:600;">Module</td><td style="padding:8px 12px;">COMP301</td></tr>
+                  <tr><td style="padding:8px 12px;font-weight:600;">Title</td><td style="padding:8px 12px;">Advanced Algorithms</td></tr>
+                  <tr style="background:#f8fafc;"><td style="padding:8px 12px;font-weight:600;">Grade</td><td style="padding:8px 12px;font-weight:600;color:#16a34a;">B+</td></tr>
+                  <tr><td style="padding:8px 12px;font-weight:600;">Status</td><td style="padding:8px 12px;"><span class="badge badge-success">PASS</span></td></tr>
+                </table>
+                <p style="margin-top:8px;">If you have any questions, please contact the Registrar Office.</p>
+                <p style="margin-top:16px;">Regards,<br>Registrar Office</p>
+              </div>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <button class="btn btn-secondary">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 4: VALIDATION DIALOG
+     ============================================================ -->
+<section id="validation" class="pres-section">
+  <h2>📺 Screen 4 — Validation Results Dialog</h2>
+  <p class="sec-desc">Shown when Excel columns don't match template variables. Red styling for errors, clear detail section. Includes action buttons (not just Close).</p>
+
+  <div class="mockup-container">
+    <div class="mockup-window small">
+      <div class="mockup-titlebar"><div class="dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div><span class="title">Validation Results</span><div class="spacer"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      <div class="mockup-body flat" style="padding:16px;">
+        <div class="dialog-content">
+          <h3>⚠ Validation Issues Found</h3>
+
+          <div style="background:var(--color-error-light);border:1px solid #fecaca;border-radius:var(--radius-md);padding:12px;">
+            <div style="font-weight:600;color:var(--color-error);font-size:var(--text-sm);">2 column mismatches detected</div>
+            <div style="font-size:var(--text-xs);color:var(--color-error);margin-top:2px;">The email cannot be generated correctly until these are resolved.</div>
+          </div>
+
+          <div>
+            <div style="font-weight:600;font-size:var(--text-sm);margin-bottom:6px;">Details</div>
+            <div class="val-detail">
+              <div><span class="val-fail">✗ Missing from Excel:</span> module_title, exam_date</div>
+              <div style="margin-top:4px;"><span style="color:var(--amber-600);">⚠ Unused in template:</span> extra_column_1, notes_field</div>
+            </div>
+          </div>
+
+          <div class="dialog-actions">
+            <button class="btn btn-ghost">Continue Anyway</button>
+            <button class="btn btn-primary">Go Back &amp; Fix</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 5: DELIVERY METHOD
+     ============================================================ -->
+<section id="delivery-method" class="pres-section">
+  <h2>📺 Screen 5 — Delivery Method Dialog (Wizard Step 1/3)</h2>
+  <p class="sec-desc">User selects Outlook or SMTP. The step indicator shows progress. Outlook mailbox dropdown disables when SMTP is selected.</p>
+
+  <div class="mockup-container">
+    <div class="mockup-window small">
+      <div class="mockup-titlebar"><div class="dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div><span class="title">Delivery Method</span><div class="spacer"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      <div class="mockup-body flat" style="padding:16px;">
+        <div class="dialog-content">
+          <!-- Step indicator -->
+          <div class="steps">
+            <div class="step active"><span class="circle">1</span><span class="step-label">Method</span><span class="connector"></span></div>
+            <div class="step"><span class="circle">2</span><span class="step-label">Mode</span><span class="connector"></span></div>
+            <div class="step"><span class="circle">3</span><span class="step-label">Confirm</span></div>
+          </div>
+
+          <h3>Choose Delivery Method</h3>
+          <div class="radio-group">
+            <label class="radio-option selected">
+              <input type="radio" name="method" checked>
+              <div class="ro-body"><div class="ro-title">Outlook (Desktop)</div><div class="ro-desc">Send via Microsoft Outlook — drafts or immediate send</div></div>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="method">
+              <div class="ro-body"><div class="ro-title">SMTP (Email Server)</div><div class="ro-desc">Send via configured SMTP server using app credentials</div></div>
+            </label>
+          </div>
+
+          <div style="background:var(--slate-50);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;">
+            <div style="font-size:var(--text-xs);font-weight:600;color:var(--text-secondary);margin-bottom:4px;">OUTLOOK ACCOUNT</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:var(--text-sm);color:var(--text-secondary);">From:</span>
+              <select class="input" style="flex:1;">
+                <option>registrar@university.edu</option>
+                <option>exams@university.edu</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="dialog-actions">
+            <button class="btn btn-ghost">Back</button>
+            <button class="btn btn-primary">Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 6: DELIVERY MODE
+     ============================================================ -->
+<section id="delivery-mode" class="pres-section">
+  <h2>📺 Screen 6 — Delivery Mode Dialog (Wizard Step 2/3)</h2>
+  <p class="sec-desc">Draft-by-default is the safe default. Each option has a clear description so staff understand the consequences.</p>
+
+  <div class="mockup-container">
+    <div class="mockup-window small">
+      <div class="mockup-titlebar"><div class="dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div><span class="title">Delivery Mode</span><div class="spacer"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      <div class="mockup-body flat" style="padding:16px;">
+        <div class="dialog-content">
+          <div class="steps">
+            <div class="step done"><span class="circle">✓</span><span class="step-label">Method</span><span class="connector"></span></div>
+            <div class="step active"><span class="circle">2</span><span class="step-label">Mode</span><span class="connector"></span></div>
+            <div class="step"><span class="circle">3</span><span class="step-label">Confirm</span></div>
+          </div>
+
+          <h3>How would you like to process the emails?</h3>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="mode">
+              <div class="ro-body"><div class="ro-title">🔍 Preview Only</div><div class="ro-desc">Generate HTML previews without sending any emails</div></div>
+            </label>
+            <label class="radio-option selected">
+              <input type="radio" name="mode" checked>
+              <div class="ro-body"><div class="ro-title">📝 Create Outlook Drafts (Default)</div><div class="ro-desc">Create unsent draft emails in Outlook for review before sending</div></div>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="mode">
+              <div class="ro-body"><div class="ro-title">📨 Send Immediately</div><div class="ro-desc">Send emails directly to students without further confirmation</div></div>
+            </label>
+          </div>
+
+          <div class="dialog-actions">
+            <button class="btn btn-ghost">Back</button>
+            <button class="btn btn-primary">Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 7: CONFIRMATION
+     ============================================================ -->
+<section id="confirmation" class="pres-section">
+  <h2>📺 Screen 7 — Confirmation Dialog (Wizard Step 3/3)</h2>
+  <p class="sec-desc">Final review before sending. Clean summary stats with color-coded pass/fail counts, delivery info, and a clear commit action.</p>
+
+  <div class="mockup-container">
+    <div class="mockup-window small">
+      <div class="mockup-titlebar"><div class="dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div><span class="title">Ready to Process</span><div class="spacer"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      <div class="mockup-body flat" style="padding:16px;">
+        <div class="dialog-content">
+          <div class="steps">
+            <div class="step done"><span class="circle">✓</span><span class="step-label">Method</span><span class="connector"></span></div>
+            <div class="step done"><span class="circle">✓</span><span class="step-label">Mode</span><span class="connector"></span></div>
+            <div class="step active"><span class="circle">3</span><span class="step-label">Confirm</span></div>
+          </div>
+
+          <h3>Ready to Process</h3>
+
+          <div class="confirm-stats">
+            <div style="color:var(--text-secondary);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Summary</div>
+            <div class="divider">━━━━━━━━━━━━━━━━━━━━━━</div>
+            <div>Students: <span class="num">48</span></div>
+            <div style="margin-top:6px;">
+              <span class="pass">PASS emails:</span> <span class="num">38</span><br>
+              <span class="fail">FAIL emails:</span> <span class="num">7</span><br>
+              <span style="color:var(--amber-600);font-weight:600;">EC emails:</span> <span class="num">3</span>
+            </div>
+            <div class="divider">━━━━━━━━━━━━━━━━━━━━━━</div>
+          </div>
+
+          <div style="background:var(--color-primary-light);border:1px solid var(--blue-200);border-radius:var(--radius-md);padding:12px;font-size:var(--text-sm);">
+            <div style="font-weight:600;color:var(--color-primary);">Delivery</div>
+            <div style="color:var(--text-secondary);margin-top:2px;">Outlook (Desktop) · Create Drafts</div>
+          </div>
+
+          <div class="dialog-actions">
+            <button class="btn btn-ghost">Back</button>
+            <button class="btn btn-primary btn-lg">📨 Process 48 Emails</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SCREEN 8: RESULTS DIALOG
+     ============================================================ -->
+<section id="results" class="pres-section">
+  <h2>📺 Screen 8 — Results Dialog</h2>
+  <p class="sec-desc">Post-send summary with tabbed view (All Records / Errors), copy-to-clipboard, and clear success/error breakdown.</p>
+
+  <div class="mockup-container">
+    <div class="mockup-window wide">
+      <div class="mockup-titlebar"><div class="dots"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span></div><span class="title">Processing Results</span><div class="spacer"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      <div class="mockup-body flat" style="padding:16px;">
+        <div class="dialog-content">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="background:var(--color-success-light);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;">✓</div>
+            <div>
+              <div style="font-weight:700;font-size:var(--text-lg);">Processing Complete</div>
+              <div style="font-size:var(--text-sm);color:var(--text-secondary);">
+                <span class="badge badge-success" style="margin-right:4px;">46 sent</span>
+                <span class="badge badge-error">2 failed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div style="display:flex;gap:0;border-bottom:2px solid var(--border);">
+            <div style="padding:8px 16px;font-size:var(--text-sm);font-weight:600;color:var(--color-primary);border-bottom:2px solid var(--color-primary);margin-bottom:-2px;">All Records</div>
+            <div style="padding:8px 16px;font-size:var(--text-sm);color:var(--text-secondary);">Errors (2)</div>
+          </div>
+
+          <!-- Table -->
+          <div style="font-family:var(--font-mono);font-size:12px;overflow-x:auto;background:var(--slate-50);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;">
+            <div style="color:var(--text-tertiary);margin-bottom:4px;">Time &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| Student ID | Email &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| Status | Error</div>
+            <div style="color:var(--slate-400);">────────────┼────────────┼──────────────────────────────────┼────────┼─────</div>
+            <div><span style="color:var(--slate-500);">14:32:01</span> | STU001 &nbsp;&nbsp;&nbsp;&nbsp;| john.smith@university.edu &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="val-pass">SENT</span> &nbsp;| —</div>
+            <div><span style="color:var(--slate-500);">14:32:02</span> | STU002 &nbsp;&nbsp;&nbsp;&nbsp;| invalid.email &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="val-fail">ERROR</span> | Invalid email address</div>
+            <div><span style="color:var(--slate-500);">14:32:02</span> | STU003 &nbsp;&nbsp;&nbsp;&nbsp;| a.patel@university.edu &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <span class="val-pass">SENT</span> &nbsp;| —</div>
+            <div style="color:var(--text-tertiary);margin-top:4px;">... and 45 more rows</div>
+          </div>
+
+          <div class="dialog-actions">
+            <button class="btn btn-secondary">📋 Copy to Clipboard</button>
+            <button class="btn btn-primary">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     WIZARD FLOW
+     ============================================================ -->
+<section id="flow" class="pres-section">
+  <h2>🔄 Complete Wizard Flow</h2>
+  <p class="sec-desc">End-to-end user journey from cold start to results. Each step is a modal dialog (steps 2–5) or inline action (steps 1, 6).</p>
+
+  <div class="flow-diagram">
+    <div class="flow-node">1. Upload Template</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">2. Browse Excel</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">3. Validate</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">4. Preview</div>
+  </div>
+  <div class="flow-diagram" style="padding-top:0;">
+    <div class="flow-node">5a. Send Test</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node" style="background:var(--color-primary-light);border-color:var(--blue-200);font-weight:600;color:var(--color-primary);">
+      5b. Send All<br><span style="font-size:10px;font-weight:400;">(Wizard: Method → Mode → Confirm)</span>
+    </div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">6. Results</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-node">7. Audit Log</div>
+  </div>
+
+  <div style="margin-top:32px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;font-size:var(--text-sm);">
+    <div><strong style="color:var(--color-success);">Safety</strong><br><span style="color:var(--text-secondary);">Draft-by-default prevents accidental mass sends. "Send Immediately" requires explicit selection each time.</span></div>
+    <div><strong style="color:var(--color-primary);">Clarity</strong><br><span style="color:var(--text-secondary);">Step indicators show progress. Every action has a description. Color-coded status throughout.</span></div>
+    <div><strong style="color:var(--amber-600);">Recovery</strong><br><span style="color:var(--text-secondary);">Per-student failure isolation. Errors tab in results. Full audit log written to .xlsx.</span></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<section style="text-align:center;padding:48px 32px;border-top:1px solid var(--border);margin-top:32px;">
+  <p style="color:var(--text-tertiary);font-size:var(--text-sm);">Exam Email Automation — Design System v1.0</p>
+  <p style="color:var(--text-tertiary);font-size:var(--text-xs);margin-top:4px;">Open <code style="background:var(--slate-100);padding:2px 6px;border-radius:3px;">docs/design-mockup.html</code> in a browser · Click any screen in the nav to jump to it</p>
+</section>
+
+</body>
+</html>
