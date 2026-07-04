@@ -18,7 +18,7 @@ def test_audit_logger_saves_excel(tmp_path: Path) -> None:
     path = audit_logger.save(records)
 
     assert path.exists()
-    assert path.name == "send_log.xlsx"
+    assert "send_log" in path.name and path.name.endswith(".xlsx")
 
     df = pd.read_excel(path, engine="openpyxl")
     assert str(df.loc[0, "Student ID"]) == "1001"

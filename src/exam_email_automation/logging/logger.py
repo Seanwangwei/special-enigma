@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 import pandas as pd
@@ -30,6 +31,7 @@ class AuditLogger:
 
     def save(self, records: list[dict[str, Any]]) -> Path:
         df = pd.DataFrame(records)
-        path = self.log_folder / "send_log.xlsx"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = self.log_folder / f"send_log_{timestamp}.xlsx"
         df.to_excel(path, index=False)
         return path

@@ -60,3 +60,34 @@ def test_load_students_groups_by_student_id(tmp_path: Path) -> None:
     assert alice.email == "alice@example.com"
     bob = next(student for student in students if student.student_id == "1002")
     assert bob.template_name == "Template 2"
+
+
+def test_nan_values_produce_empty_strings(tmp_path: Path) -> None:
+    """Cells with NaN values should produce empty strings, not literal 'nan'."""
+    import math
+    data = [
+        {
+            "Student ID": "2001",
+            "First Name": float("nan"),
+            "Surname": "Doe",
+            "Email": "john@example.com",
+            "Module Code": "COMP201",
+            "Module Name": float("nan"),
+            "Assessment Format in August": "Exam",
+            "Attempt": 1,
+            "Pass Credits": float("nan"),
+            "Stage Average": 72,
+            "Email Template": "Template 1",
+            "Number of Failed Modules": 0,
+        },
+    ]
+    path = tmp_path / "nan_students.xlsx"
+    pd.DataFrame(data).to_excel(path, index=False)
+
+    reader = ExcelReader()
+    students = reader.load_students(path)
+
+    assert len(students) == 1
+    student = students[0]
+    assert student.first_name == "", f"Expected empty string, got '{student.first_name}'"
+    assert student.pass_credits == "", f"Expected empty string, got '{student.pass_credits}'"

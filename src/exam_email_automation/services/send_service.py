@@ -5,9 +5,17 @@ from exam_email_automation.config.config_loader import Config
 from exam_email_automation.email.delivery_mode import DeliveryMode
 from exam_email_automation.email.email_builder import EmailBuilder, EmailMessage
 from exam_email_automation.email.email_sender import OutlookEmailSender
+from exam_email_automation.email.smtp_sender import SMTPConfig, SMTPEmailSender
 from exam_email_automation.logging.logger import AuditLogger, configure_logging
 from exam_email_automation.models.student import Student
 from exam_email_automation.validation.validator import Validator
+
+
+MODE_MAP = {
+    "preview_only": DeliveryMode.PREVIEW_ONLY,
+    "create_drafts": DeliveryMode.CREATE_DRAFTS,
+    "send_immediately": DeliveryMode.SEND_IMMEDIATELY,
+}
 
 
 class SendService:
@@ -16,25 +24,50 @@ class SendService:
     Supports three modes:
     - PREVIEW_ONLY: Generate and save HTML preview only.
     - CREATE_DRAFTS: Create Outlook draft emails (default; Windows only).
-    - SEND_IMMEDIATELY: Send emails immediately via Outlook.
+    - SEND_IMMEDIATELY: Send emails immediately via the configured provider.
+
+    Supports two providers:
+    - Outlook (default): Uses pywin32 COM integration.
+    - SMTP: Uses smtplib for cross-platform delivery.
     """
 
-    def __init__(self, config: Config, delivery_mode: DeliveryMode = DeliveryMode.CREATE_DRAFTS, mailbox_email: Optional[str] = None) -> None:
+    def __init__(self, config: Config, delivery_mode: Optional[DeliveryMode] = None, mailbox_email: Optional[str] = None) -> None:
         """Initialize SendService.
 
         Args:
             config: Application configuration.
             delivery_mode: How to handle email delivery (preview, draft, send).
+                           If None, resolved from config.delivery_mode.
             mailbox_email: Optional Outlook shared mailbox email address.
         """
         self.config = config
+        if delivery_mode is None:
+            delivery_mode = MODE_MAP.get(config.delivery_mode, DeliveryMode.CREATE_DRAFTS)
         self.delivery_mode = delivery_mode
-        self.mailbox_email = mailbox_email
-        self.email_sender = OutlookEmailSender(use_default_profile=config.use_default_outlook, mailbox_email=mailbox_email)
+        self.mailbox_email = mailbox_email or config.outlook_mailbox_email
         self.email_builder = EmailBuilder()
         self.validator = Validator()
         self.audit_logger = AuditLogger(config.log_folder)
         self.logger = configure_logging(config.log_folder)
+
+        # Select provider based on config
+        if config.email_provider == "smtp" and config.smtp_enabled:
+            smtp_cfg = SMTPConfig(
+                host=config.smtp_host,
+                port=config.smtp_port,
+                username=config.smtp_username,
+                password=config.smtp_password,
+                use_ssl=config.smtp_use_ssl,
+                use_tls=config.smtp_use_tls,
+            )
+            self.email_sender = SMTPEmailSender(smtp_cfg)
+            self._is_smtp = True
+        else:
+            self.email_sender = OutlookEmailSender(
+                use_default_profile=config.use_default_outlook,
+                mailbox_email=self.mailbox_email,
+            )
+            self._is_smtp = False
 
     def send_student(self, student: Student, html_body: str, attachments: Optional[Iterable[Path]] = None) -> dict[str, str]:
         """Process a single student email based on delivery mode.
@@ -67,6 +100,15 @@ class SendService:
             if self.delivery_mode == DeliveryMode.PREVIEW_ONLY:
                 record["Status"] = "Preview Generated"
                 self.logger.info("Preview generated for %s (%s)", student.full_name, student.email)
+            elif self._is_smtp:
+                # SMTP path: send_message takes an EmailMessage object.
+                # SMTP does not support draft mode; treat CREATE_DRAFTS as send.
+                self.email_sender.send_message(message)
+                if self.delivery_mode == DeliveryMode.CREATE_DRAFTS:
+                    record["Status"] = "Sent (SMTP)"
+                else:
+                    record["Status"] = "Sent"
+                self.logger.info("Email sent via SMTP to %s (%s)", student.full_name, student.email)
             elif self.delivery_mode == DeliveryMode.CREATE_DRAFTS:
                 self.email_sender.create_draft(
                     message.to_address, message.subject, message.html_body, message.attachments

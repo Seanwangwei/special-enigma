@@ -116,15 +116,14 @@ class ResultsDialog(QDialog):
         return "\n".join(lines)
 
     def _copy_to_clipboard(self):
-        from PySide6.QtGui import QClipboard
         from PySide6.QtWidgets import QApplication
-        
+        from PySide6.QtCore import QTimer
+
         text = self._build_all_records()
         QApplication.clipboard().setText(text)
         # Show brief feedback
-        copy_btn = self.sender()
-        if copy_btn:
-            original_text = copy_btn.text()
-            copy_btn.setText("Copied!")
-            from PySide6.QtCore import QTimer
-            QTimer.singleShot(1500, lambda: copy_btn.setText(original_text))
+        btn = self.sender()
+        if btn is not None:
+            original = btn.text()
+            btn.setText("Copied!")
+            QTimer.singleShot(1500, lambda b=btn, t=original: b.setText(t) if not b.isDestroyed() else None)

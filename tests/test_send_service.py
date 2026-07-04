@@ -71,3 +71,24 @@ def test_send_student_success(monkeypatch, tmp_path: Path) -> None:
 
     assert record["Status"] == "Sent"
     assert record["Error"] == ""
+
+
+def test_send_service_uses_smtp_when_configured(tmp_path: Path) -> None:
+    """When email_provider is 'smtp' and smtp_enabled is True, SendService should use SMTPEmailSender."""
+    from exam_email_automation.email.delivery_mode import DeliveryMode
+
+    config = make_config(tmp_path)
+    # Override the frozen dataclass with SMTP settings
+    object.__setattr__(config, "email_provider", "smtp")
+    object.__setattr__(config, "smtp_enabled", True)
+    object.__setattr__(config, "smtp_host", "localhost")
+    object.__setattr__(config, "smtp_port", 587)
+    object.__setattr__(config, "smtp_username", "user@test.com")
+    object.__setattr__(config, "smtp_password", "pass")
+    object.__setattr__(config, "smtp_use_tls", False)
+    object.__setattr__(config, "smtp_use_ssl", False)
+
+    service = SendService(config, delivery_mode=DeliveryMode.PREVIEW_ONLY)
+    assert service._is_smtp is True
+    from exam_email_automation.email.smtp_sender import SMTPEmailSender
+    assert isinstance(service.email_sender, SMTPEmailSender)

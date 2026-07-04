@@ -56,3 +56,27 @@ smtp_use_ssl: true
     assert config.smtp_password == "secret"
     assert config.smtp_use_ssl is True
     assert config.smtp_use_tls is False
+
+
+def test_templates_folder_resolves_relative_to_config_path(tmp_path: Path) -> None:
+    """The templates folder should be resolved relative to the config file's directory."""
+    config_content = "templates_folder: my_templates\n"
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(config_content, encoding="utf-8")
+
+    loader = ConfigLoader(config_file)
+    config = loader.load()
+
+    assert config.templates_folder == tmp_path / "my_templates"
+
+
+def test_templates_folder_defaults_when_not_configured(tmp_path: Path) -> None:
+    """When templates_folder is not in config, it defaults relative to the config path."""
+    config_content = "preview_folder: preview\n"
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(config_content, encoding="utf-8")
+
+    loader = ConfigLoader(config_file)
+    config = loader.load()
+
+    assert config.templates_folder == tmp_path / "templates"

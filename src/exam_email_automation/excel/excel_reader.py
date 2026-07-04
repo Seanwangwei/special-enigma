@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Iterable
 import pandas as pd
@@ -8,6 +9,16 @@ from exam_email_automation.models.module_result import ModuleResult
 from exam_email_automation.models.student import Student
 from exam_email_automation.validation.validator import Validator
 from exam_email_automation.logging.logger import configure_logging
+
+
+def _safe_str(value) -> str:
+    """Convert a cell value to a string, guarding against NaN values."""
+    try:
+        if value is None or (isinstance(value, float) and math.isnan(value)):
+            return ""
+    except TypeError:
+        pass
+    return str(value).strip()
 
 
 class ExcelReader:
@@ -42,23 +53,23 @@ class ExcelReader:
     def _build_student(self, student_id: str, rows: pd.DataFrame) -> Student:
         first_row = rows.iloc[0]
         student = Student(
-            student_id=str(student_id).strip(),
-            first_name=str(first_row.get("first name", "")).strip(),
-            surname=str(first_row.get("surname", "")).strip(),
-            email=str(first_row.get("email", "")).strip(),
-            template_name=str(first_row.get("email template", "")).strip(),
-            stage_average=str(first_row.get("stage average", "")).strip(),
-            pass_credits=str(first_row.get("pass credits", "")).strip(),
-            failed_modules=str(first_row.get("number of failed modules", "")).strip(),
+            student_id=_safe_str(student_id),
+            first_name=_safe_str(first_row.get("first name", "")),
+            surname=_safe_str(first_row.get("surname", "")),
+            email=_safe_str(first_row.get("email", "")),
+            template_name=_safe_str(first_row.get("email template", "")),
+            stage_average=_safe_str(first_row.get("stage average", "")),
+            pass_credits=_safe_str(first_row.get("pass credits", "")),
+            failed_modules=_safe_str(first_row.get("number of failed modules", "")),
         )
 
         for _, row in rows.iterrows():
             module = ModuleResult(
-                module_code=str(row.get("module code", "")).strip(),
-                module_name=str(row.get("module name", "")).strip(),
-                assessment_format=str(row.get("assessment format in august", "")).strip(),
-                attempt=str(row.get("attempt", "")).strip(),
-                pass_credits=str(row.get("pass credits", "")).strip(),
+                module_code=_safe_str(row.get("module code", "")),
+                module_name=_safe_str(row.get("module name", "")),
+                assessment_format=_safe_str(row.get("assessment format in august", "")),
+                attempt=_safe_str(row.get("attempt", "")),
+                pass_credits=_safe_str(row.get("pass credits", "")),
             )
             student.modules.append(module)
 

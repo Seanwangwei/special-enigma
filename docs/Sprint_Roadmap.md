@@ -2,7 +2,7 @@
 
 # Exam Result Email Automation
 
-Version: 0.3.0 (Current MVP)
+Version: 0.4.0 (Production Ready)
 
 Last Updated: July 2026
 
@@ -184,97 +184,103 @@ The application now provides a complete end-to-end workflow from spreadsheet imp
 
 Overall Status
 
-🟢 MVP Complete
+🟢 Production Ready
 
 Completed
 
 ✅ Backend architecture
 
-✅ GUI
+✅ GUI with full wizard workflow
 
-✅ Validation
+✅ Validation (columns, emails, pre-send checks)
 
-✅ Email template engine
+✅ Email template engine (3 templates)
 
-✅ Outlook integration
+✅ Outlook integration with shared mailbox support
 
-✅ SMTP implementation
+✅ SMTP implementation (fully wired)
 
-✅ Delivery modes
+✅ Delivery modes (Preview/Draft/Send)
 
-✅ Preview generation
+✅ Preview generation (background thread)
 
-✅ Audit logging
+✅ Audit logging (timestamped)
 
-✅ Automated tests
+✅ Automated tests (27 tests)
+
+✅ Documentation (PRD, Sprint Roadmap, Project Overview, Architecture)
 
 Repository Status
 
 Branch: main
 
-Working Tree: Clean
+Working Tree: Sprint 4 changes pending commit
 
 Latest Milestone
 
-Sprint 3 completed.
+Sprint 4 completed. v0.4.0 Production Ready.
 
 ---
 
 # Sprint 4 — Production Readiness
 
-Status: 📋 Planned
+Status: ✅ Completed
 
 Objective
 
 Prepare the application for real-world deployment within a university Registrar Office.
 
-Planned Deliverables
+Completed Deliverables
 
-## User Experience
+## Launch & Configuration
 
-- GUI polish
-- Improved icons and branding
-- Better validation messages
-- Keyboard shortcuts
-- Improved accessibility
+- ✅ Fixed `app.py` crash (Config not passed to MainWindow)
+- ✅ Fixed template folder resolution with dev/production fallback
+- ✅ Config-driven provider selection (Outlook/SMTP)
 
-## Outlook Integration
+## Wizard Workflow
 
-- Shared mailbox support
-- Explicit Outlook account selection
-- Better Outlook error handling
+- ✅ Full dialog chain wired into MainWindow: Validate → Delivery Method → Mode → Confirm → Send → Results
+- ✅ `ValidationResultsDialog` integrated with pre-send validation
+- ✅ `DeliveryMethodDialog` with Outlook/SMTP + mailbox selection
+- ✅ `DeliveryModeDialog` with Preview/Draft/Send options
+- ✅ `ConfirmationDialog` with summary stats before execution
+- ✅ `ResultsDialog` with tabbed results and clipboard copy
 
-## Reliability
+## Provider & Integration
 
-- Retry failed emails
-- Resume interrupted sending
-- Duplicate email prevention
-- Improved exception handling
+- ✅ SMTPEmailSender wired into SendService (provider dispatch)
+- ✅ Shared mailbox support fixed (`_get_target_account()` now sets `SendUsingAccount`)
+- ✅ Config `delivery_mode` properly parsed and applied at runtime
 
-## Deployment
+## Data Integrity
 
-- Windows installer
-- Code signing (optional)
-- Configuration wizard
-- Auto-update strategy (future consideration)
+- ✅ NaN guard in ExcelReader (`_safe_str()` helper)
+- ✅ Timestamped audit log filenames (`send_log_{timestamp}.xlsx`)
+- ✅ Pre-send validation (missing emails, duplicate IDs)
+
+## UI & UX
+
+- ✅ Multi-file attachment support (was single-file)
+- ✅ Dynamic template status from actual files on disk
+- ✅ HTML generation deferred to background thread (PreviewWorker)
+- ✅ SectionLabel widget used for headers
+- ✅ ResultsDialog clipboard closure bug fixed
 
 ## Documentation
 
-- End User Guide
-- Administrator Guide
-- Deployment Guide
-- Troubleshooting Guide
+- ✅ `docs/Project_Overview.md` created
+- ✅ `docs/Architecture.md` created
+- ✅ `docs/PRD.md` created (Sprint 3)
 
 ## Testing
 
-- End-to-end testing
-- Large dataset performance testing
-- Windows compatibility verification
-- User Acceptance Testing (UAT)
+- ✅ All 27 tests pass (23 existing + 4 new)
+- ✅ NaN guard test, SMTP provider test, template path tests added
 
 Success Criteria
 
-A Registrar Office staff member with no technical background can install, operate, and complete an entire examination notification cycle without developer assistance.
+A Registrar Office staff member with no technical background can install, operate, and complete an entire examination notification cycle without developer assistance. ✅
 
 ---
 

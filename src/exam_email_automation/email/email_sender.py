@@ -67,6 +67,10 @@ class OutlookEmailSender:
         for attachment in attachments or []:
             mail.Attachments.Add(str(Path(attachment).resolve()))
 
+        # Set the sending account (shared mailbox support)
+        account = self._get_target_account(outlook)
+        mail.SendUsingAccount = account
+
         # Save draft without sending
         mail.Save()
 
@@ -87,5 +91,9 @@ class OutlookEmailSender:
 
         for attachment in attachments or []:
             mail.Attachments.Add(str(Path(attachment).resolve()))
+
+        # Set the sending account (shared mailbox support)
+        account = self._get_target_account(outlook)
+        mail.SendUsingAccount = account
 
         mail.Send()
