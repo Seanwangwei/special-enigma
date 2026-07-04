@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Exam Result Notification</title>
+</head>
+<body>
+    <p>Dear {{ first_name }},</p>
+    <p>We are pleased to confirm that your examination results have been processed.</p>
+    <p>Your stage average is <strong>{{ stage_average }}</strong> and you have achieved <strong>{{ pass_credits }}</strong> credits.</p>
+    <p>Please review the module breakdown below:</p>
+    {{ module_table | safe }}
+    <p>Best regards,<br/>Student Administration</p>
+</body>
+</html>

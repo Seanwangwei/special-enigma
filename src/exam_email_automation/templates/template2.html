@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Reassessment Information</title>
+</head>
+<body>
+    <p>Dear {{ first_name }},</p>
+    <p>Thank you for completing your recent assessments.</p>
+    <p>According to our records, you are eligible for reassessment in the following modules:</p>
+    {{ module_table | safe }}
+    <p>If you have any questions, please contact the Examination Office.</p>
+    <p>Sincerely,<br/>Examination Services</p>
+</body>
+</html>

@@ -1,0 +1,5 @@
+preview_folder: preview
+log_folder: logs
+attachment_folder: attachments
+templates_folder: templates
+use_default_outlook: true
