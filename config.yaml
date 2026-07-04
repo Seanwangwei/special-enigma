@@ -3,3 +3,17 @@ log_folder: logs
 attachment_folder: attachments
 templates_folder: templates
 use_default_outlook: true
+
+# Email delivery configuration
+delivery_mode: "create_drafts"        # Options: "preview_only", "create_drafts", "send_immediately"
+email_provider: "outlook"             # Options: "outlook" (default), "smtp"
+outlook_mailbox_email: null           # Optional: email address of shared mailbox to use
+
+# SMTP configuration (used when email_provider is "smtp")
+smtp_enabled: false
+smtp_host: "smtp.example.com"
+smtp_port: 587
+smtp_username: "user@example.com"
+smtp_password: ""                     # IMPORTANT: Use environment variables in production
+smtp_use_tls: true
+smtp_use_ssl: false

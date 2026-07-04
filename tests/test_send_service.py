@@ -13,6 +13,16 @@ def make_config(tmp_path: Path) -> Config:
         attachment_folder=tmp_path / "attachments",
         templates_folder=tmp_path / "templates",
         use_default_outlook=True,
+        delivery_mode="create_drafts",
+        email_provider="outlook",
+        outlook_mailbox_email=None,
+        smtp_enabled=False,
+        smtp_host="smtp.example.com",
+        smtp_port=587,
+        smtp_username="",
+        smtp_password="",
+        smtp_use_tls=True,
+        smtp_use_ssl=False,
     )
 
 
@@ -38,7 +48,8 @@ def test_send_student_with_invalid_email(tmp_path: Path) -> None:
 
 def test_send_student_success(monkeypatch, tmp_path: Path) -> None:
     config = make_config(tmp_path)
-    service = SendService(config)
+    from exam_email_automation.email.delivery_mode import DeliveryMode
+    service = SendService(config, delivery_mode=DeliveryMode.SEND_IMMEDIATELY)
     student = Student(
         student_id="1002",
         first_name="George",

@@ -13,6 +13,16 @@ def test_generate_and_save_preview_html(tmp_path: Path) -> None:
         attachment_folder=tmp_path / "attachments",
         templates_folder=Path.cwd() / "src" / "exam_email_automation" / "templates",
         use_default_outlook=True,
+        delivery_mode="preview_only",
+        email_provider="outlook",
+        outlook_mailbox_email=None,
+        smtp_enabled=False,
+        smtp_host="smtp.example.com",
+        smtp_port=587,
+        smtp_username="",
+        smtp_password="",
+        smtp_use_tls=True,
+        smtp_use_ssl=False,
     )
     engine = TemplateEngine(config.templates_folder)
     preview_service = PreviewService(engine, config)

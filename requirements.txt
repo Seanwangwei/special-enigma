@@ -5,3 +5,4 @@ Jinja2>=3.1
 pywin32>=305; platform_system == "Windows"
 pyyaml>=6.0
 pytest>=8.0
+aiosmtpd>=1.4.6
