@@ -2,7 +2,7 @@
 
 # Exam Result Email Automation
 
-Version: 0.4.0 (Production Ready)
+Version: 0.5.0 (Dynamic Templates)
 
 Last Updated: July 2026
 
@@ -281,6 +281,52 @@ Completed Deliverables
 Success Criteria
 
 A Registrar Office staff member with no technical background can install, operate, and complete an entire examination notification cycle without developer assistance. ✅
+
+---
+
+# Sprint 5 — Dynamic Template Upload & Variable Detection
+
+Status: ✅ Completed
+
+Objective
+
+Replace hardcoded Excel column names and templates with a dynamic, template-first workflow where Registrar staff upload their own Word (.docx) email templates.
+
+Completed Deliverables
+
+## DOCX Template Support
+
+- ✅ Word (.docx) template upload with {{variable}} placeholders
+- ✅ Variable extraction from .docx paragraphs and tables
+- ✅ DOCX-to-HTML conversion preserving bold/italic formatting
+- ✅ Variable classification (simple vs. special like module_table)
+- ✅ Companion YAML support for template subject lines
+- ✅ GUI prompt for subject line when no YAML found
+
+## Dynamic Validation
+
+- ✅ Dynamic column validation driven by template variables
+- ✅ MismatchReport — shows missing and unused columns
+- ✅ User alert dialog with Continue/Cancel on mismatch
+- ✅ Special variables (module_table) excluded from Excel validation
+- ✅ Backward compatible with bundled HTML templates
+
+## Model Flexibility
+
+- ✅ Student.extra_fields dict for arbitrary Excel columns
+- ✅ to_context() merges structured fields + extra fields
+- ✅ ExcelReader captures unknown columns automatically
+
+## Template Engine Updates
+
+- ✅ ChoiceLoader (DictLoader + FileSystemLoader) for uploaded + bundled templates
+- ✅ EmailBuilder.override_subject for DOCX template subject lines
+- ✅ Template clear/revert to bundled HTML templates
+
+## Testing
+
+- ✅ 55 tests pass (27 existing + 17 docx parser + 11 integration)
+- ✅ Integration tests: parse → validate → render → send pipeline
 
 ---
 

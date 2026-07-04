@@ -2,9 +2,9 @@
 
 # Exam Result Email Automation
 
-**UAT Version:** v0.4.0
+**UAT Version:** v0.5.0
 **UAT Start Date:** July 4, 2026
-**UAT Status:** ⏸️ Paused (Sprint 5 — Template Upload & Variable Detection)
+**UAT Status:** 🟢 Active (Sprint 5 complete — resuming UAT)
 **Tester:** Sean Wang
 
 ---
@@ -13,9 +13,9 @@
 
 | # | Title | Severity | Status |
 |---|---|---|---|
-| BUG-001 | Real registrar Excel file rejected on load | 🔴 Critical | 🔴 Open (deferred to Sprint 5) |
+| BUG-001 | Real registrar Excel file rejected on load | 🔴 Critical | ✅ Fixed (Sprint 5) |
 | BUG-002 | Window not resizable & default width too wide | 🟡 Medium | ✅ Fixed |
-| BUG-003 | Missing template upload & variable detection workflow | 🔴 Critical | 🔴 Open (Sprint 5) |
+| BUG-003 | Missing template upload & variable detection workflow | 🔴 Critical | ✅ Fixed (Sprint 5) |
 
 ---
 
@@ -23,9 +23,11 @@
 
 ## BUG-001 — Real Registrar Excel File Rejected on Load
 
-**Status:** 🔴 Open
+**Status:** ✅ Fixed (Sprint 5)
 
 **Date Reported:** July 4, 2026
+
+**Date Fixed:** July 5, 2026
 
 **Severity:** 🔴 Critical
 
@@ -33,33 +35,22 @@
 
 When browsing and selecting the actual Excel file used by Registrar Office staff, an error message pop-up appears. The file is the exact file format the staff use in production, so the application must accept it without errors.
 
-**Steps to Reproduce:**
+**Root Cause:**
 
-1. Launch the application.
-2. Click **Browse…** in the Excel File section.
-3. Select the real registrar Excel file.
+The `Validator.REQUIRED_COLUMNS` list was hardcoded with specific column names. The real registrar Excel file uses different column headers. The application had no mechanism to adapt to whatever columns the university's SIS exports.
 
-**Expected Result:**
+**Fix (Sprint 5):**
 
-The file loads successfully, and the student list is displayed.
+Instead of hardcoding column names, the app now supports a template-first workflow:
+1. Staff upload a Word (.docx) template with `{{variables}}`
+2. The tool extracts variables automatically
+3. When the Excel is loaded, columns are validated against template variables (not hardcoded list)
+4. If there's a mismatch, a clear dialog shows which variables are missing and which Excel columns are unused
+5. Staff can choose to continue anyway or fix the template/Excel
 
-**Actual Result:**
+**Files Modified:** `validator.py`, `excel_reader.py`, `main_window.py`, `student.py`, `template_engine.py`, `email_builder.py`
 
-An error dialog appears. (Screenshot captured but not yet analyzed — suspected "Missing required columns" error due to column name mismatch between the Validator's hardcoded `REQUIRED_COLUMNS` list and the actual column headers in the registrar's spreadsheet.)
-
-**Root Cause Analysis:**
-
-The `Validator.REQUIRED_COLUMNS` list is hardcoded with specific column names (e.g., "student id", "assessment format in august"). The real registrar Excel file uses different column headers. The application has no mechanism to adapt to whatever columns the university's SIS exports.
-
-**Underlying Design Gap (see BUG-003):** The application lacks a template upload step where staff provide their Word template with marked variables, and a variable-detection step that dynamically maps template variables to Excel columns. Without this, every university would need a developer to update the code.
-
-**Fix:**
-
-Deferred to Sprint 5. The fix requires implementing:
-1. A Word template upload step in the GUI
-2. Variable extraction from the template (e.g., `{{first_name}}`, `{{surname}}`)
-3. Dynamic column-to-variable mapping instead of hardcoded `REQUIRED_COLUMNS`
-4. An alert/prompt if template variables don't match Excel columns
+**Verification:** 55 tests pass. GUI now has "Upload .docx Template" section above Excel file picker.
 
 ---
 
@@ -67,68 +58,36 @@ Deferred to Sprint 5. The fix requires implementing:
 
 ## BUG-003 — Missing Template Upload & Variable Detection Workflow
 
-**Status:** 🔴 Open (Sprint 5)
+**Status:** ✅ Fixed (Sprint 5)
 
 **Date Reported:** July 4, 2026
+
+**Date Fixed:** July 5, 2026
 
 **Severity:** 🔴 Critical
 
 **Description:**
 
-The current PRD and implementation assume:
-1. Email templates are pre-built HTML files maintained by developers
-2. Excel column names are fixed and known in advance
-3. No on-the-fly template customization by Registrar staff
-
-This is a fundamental design flaw. In a real university, email templates change over time (policy updates, wording changes), and Registrar staff — not developers — need to be able to update them.
-
-**Missing Workflow:**
-
-The application should support the following workflow:
-
-```
-Step 1: Upload Word Template
-        ↓
-Step 2: Identify Variables from Template
-        (e.g., {{first_name}}, {{surname}}, {{module_table}})
-        ↓
-Step 3: Upload Excel File
-        ↓
-Step 4: Validate — Alert if Template Variables ≠ Excel Columns
-        ↓
-Step 5: Generate & Send Emails
-```
-
-**PRD Sections Affected:**
-
-- FR-1 (Import Student Data) — must remove hardcoded required columns
-- FR-3 (Template Selection) — must change from hardcoded HTML to user-uploaded templates
-- FR-4 (Email Generation) — must support Word-to-HTML conversion
-- FR-6 (Validation) — must add template-variable-to-column matching
-- Section 5 (User Journey) — must add template upload step before Excel import
+The original PRD and implementation assumed templates are pre-built HTML files maintained by developers and Excel columns are fixed. Staff could not upload their own templates.
 
 **Root Cause:**
 
-The PRD was written with the assumption that templates and Excel formats are fixed and developer-controlled. This does not reflect the reality of university operations where templates evolve and SIS export formats vary.
+The PRD was written assuming templates and Excel formats are fixed and developer-controlled, not reflecting real university operations.
 
-**Fix Plan (Sprint 5):**
+**Fix (Sprint 5):**
 
-1. Add a "Upload Template" step to the GUI (before Excel loading)
-2. Support Word (.docx) templates with `{{variable}}` placeholders
-3. Parse variables from the uploaded template
-4. Remove hardcoded `REQUIRED_COLUMNS` — instead derive required fields from template variables
-5. Add validation: check that all template variables exist as Excel columns (and vice versa)
-6. Alert user with a clear prompt if there's a mismatch
-7. Convert Word template to HTML for email rendering
+Complete workflow redesign:
+1. **Template Upload** — New GUI section above Excel file picker for uploading .docx templates
+2. **Variable Detection** — `docx_parser.py` extracts `{{variables}}` from .docx files and classifies them (simple vs. special)
+3. **Companion YAML** — Staff can place a `.yaml` file next to the `.docx` with subject line
+4. **Dynamic Validation** — `validator.py` validates Excel columns against template variables instead of hardcoded list
+5. **Mismatch Alert** — Clear dialog showing missing/unused columns with Continue/Cancel options
+6. **DOCX → HTML** — Word templates converted to HTML preserving bold/italic formatting
+7. **Backward Compatible** — Bundled HTML templates still work when no .docx is uploaded
 
-**Files Likely Affected:**
+**New Files:** `docx_parser.py`, `template_metadata.py`, `test_docx_parser.py`, `test_integration_docx.py`
 
-- `src/exam_email_automation/gui/main_window.py` — add template upload step
-- `src/exam_email_automation/validation/validator.py` — dynamic column validation
-- `src/exam_email_automation/templates/template_engine.py` — Word template support
-- `src/exam_email_automation/excel/excel_reader.py` — dynamic column mapping
-- `src/exam_email_automation/email/email_builder.py` — variable-driven composition
-- `docs/PRD.md` — update FR-1, FR-3, FR-4, FR-6, User Journey
+**Verification:** 55 tests pass. Full pipeline: .docx → parse variables → validate Excel → render → send.
 
 ---
 
