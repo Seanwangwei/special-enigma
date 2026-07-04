@@ -5,7 +5,7 @@ templates_folder: src/exam_email_automation/templates
 use_default_outlook: true
 
 # Email delivery configuration
-delivery_mode: "create_drafts"        # Options: "preview_only", "create_drafts", "send_immediately"
+delivery_mode: "preview_only"        # Options: "preview_only", "create_drafts", "send_immediately"
 email_provider: "outlook"             # Options: "outlook" (default), "smtp"
 outlook_mailbox_email: null           # Optional: email address of shared mailbox to use
 

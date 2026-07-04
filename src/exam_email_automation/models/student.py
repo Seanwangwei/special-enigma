@@ -14,13 +14,14 @@ class Student:
     pass_credits: str
     failed_modules: str
     modules: list[ModuleResult] = field(default_factory=list)
+    extra_fields: dict[str, str] = field(default_factory=dict)
 
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.surname}".strip()
 
     def to_context(self) -> dict[str, Any]:
-        return {
+        context = {
             "first_name": self.first_name,
             "surname": self.surname,
             "student_id": self.student_id,
@@ -28,3 +29,8 @@ class Student:
             "pass_credits": self.pass_credits,
             "failed_modules": self.failed_modules,
         }
+        # Merge extra fields; structured fields win on key collision
+        for key, value in self.extra_fields.items():
+            if key not in context:
+                context[key] = value
+        return context

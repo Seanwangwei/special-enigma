@@ -32,7 +32,10 @@ from exam_email_automation.gui.widgets import SectionLabel
 from exam_email_automation.logging.logger import configure_logging
 from exam_email_automation.services.preview_service import PreviewService
 from exam_email_automation.services.send_service import MODE_MAP, SendService
+from exam_email_automation.templates.docx_parser import parse_and_convert, SPECIAL_VARIABLES
 from exam_email_automation.templates.template_engine import TemplateEngine
+from exam_email_automation.templates.template_metadata import TemplateMeta, load_companion_yaml
+from exam_email_automation.validation.validator import Validator
 from exam_email_automation.models.student import Student
 
 
@@ -97,6 +100,7 @@ class MainWindow(QMainWindow):
         self.attachments: list[Path] = []
         self.send_worker: Optional[SendWorker] = None
         self.preview_worker: Optional[PreviewWorker] = None
+        self.template_meta: Optional[TemplateMeta] = None
         self._prepare_folders()
         self._build_ui()
 
@@ -109,6 +113,26 @@ class MainWindow(QMainWindow):
         container = QWidget()
         main_layout = QVBoxLayout(container)
 
+        # --- Template Upload Section (new in Sprint 5) ---
+        template_group = QGroupBox("Email Template (.docx)")
+        template_layout = QVBoxLayout(template_group)
+        template_row = QHBoxLayout()
+        self.template_path_input = QLineEdit()
+        self.template_path_input.setReadOnly(True)
+        self.template_path_input.setPlaceholderText("Upload a Word template with {{variables}}...")
+        upload_template_button = QPushButton("Upload .docx Template")
+        upload_template_button.clicked.connect(self._upload_docx_template)
+        clear_template_button = QPushButton("Clear")
+        clear_template_button.clicked.connect(self._clear_uploaded_template)
+        template_row.addWidget(self.template_path_input)
+        template_row.addWidget(upload_template_button)
+        template_row.addWidget(clear_template_button)
+        template_layout.addLayout(template_row)
+        self.template_vars_label = QLabel("")
+        self.template_vars_label.setStyleSheet("color: #1565c0;")
+        template_layout.addWidget(self.template_vars_label)
+
+        # --- Excel File Section ---
         file_group = QGroupBox("Excel File")
         file_layout = QHBoxLayout(file_group)
         self.file_path_input = QLineEdit()
@@ -127,8 +151,11 @@ class MainWindow(QMainWindow):
         self.attachment_path_input.setReadOnly(True)
         browse_attachment_button = QPushButton("Browse...")
         browse_attachment_button.clicked.connect(self._browse_attachment)
+        clear_attachment_button = QPushButton("Clear")
+        clear_attachment_button.clicked.connect(self._clear_attachments)
         attachment_layout.addWidget(self.attachment_path_input)
         attachment_layout.addWidget(browse_attachment_button)
+        attachment_layout.addWidget(clear_attachment_button)
 
         action_group = QGroupBox("Actions")
         action_layout = QHBoxLayout(action_group)
@@ -158,6 +185,7 @@ class MainWindow(QMainWindow):
 
         self.status_label = QLabel("Ready")
 
+        main_layout.addWidget(template_group)
         main_layout.addWidget(file_group)
         main_layout.addWidget(template_status)
         main_layout.addWidget(attachment_group)
@@ -167,9 +195,17 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.status_label)
 
         self.setCentralWidget(container)
-        self.resize(900, 700)
+        self.resize(680, 680)
+        self.setMinimumSize(480, 400)
 
     def _template_status_text(self) -> str:
+        # If a DOCX template is uploaded, show its info prominently
+        if self.template_meta is not None:
+            meta = self.template_meta
+            vars_str = ", ".join(meta.variables) if meta.variables else "(none)"
+            return f"Active Template: {meta.template_name} | Subject: {meta.subject} | Variables: {vars_str}"
+
+        # Otherwise show bundled HTML templates
         try:
             templates = self.template_engine.environment.list_templates()
         except Exception:
@@ -199,7 +235,130 @@ class MainWindow(QMainWindow):
             self.attachment_path_input.setText(current + "; ".join(paths))
             self._append_log(f"Added {len(paths)} attachment(s): {'; '.join(paths)}")
 
+    def _clear_attachments(self) -> None:
+        self.attachments.clear()
+        self.attachment_path_input.clear()
+        self._append_log("Attachments cleared.")
+
+    def _upload_docx_template(self) -> None:
+        """Upload a Word .docx template, parse variables, and register with the engine."""
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select Word Template", str(Path.cwd()),
+            "Word Documents (*.docx)"
+        )
+        if not path:
+            return
+
+        docx_path = Path(path)
+        try:
+            template_info = parse_and_convert(docx_path)
+        except Exception as exc:
+            ErrorDialog.show_error(self, "Template Error", f"Could not read template:\n{exc}")
+            self._append_log(f"Template load failed: {exc}")
+            return
+
+        # Check for companion YAML with subject line
+        companion = load_companion_yaml(docx_path)
+        subject = None
+        if companion and isinstance(companion.get("subject"), str):
+            subject = companion["subject"].strip()
+
+        # If no subject in YAML, prompt the user
+        if not subject:
+            subject, ok = QInputDialog.getText(
+                self, "Email Subject",
+                "Enter the email subject line for this template:",
+                text="Exam Results Notification"
+            )
+            if not ok or not subject.strip():
+                ErrorDialog.show_error(self, "Subject Required", "A subject line is required to use the template.")
+                return
+            subject = subject.strip()
+
+        # Store the old template info for cleanup
+        old_meta = self.template_meta
+
+        # Create TemplateMeta
+        self.template_meta = TemplateMeta(
+            template_name=docx_path.name,
+            subject=subject,
+            source_type="docx",
+            variables=template_info.all_variables,
+            special_variables=template_info.special_variables,
+            html_content=template_info.html_content,
+        )
+
+        # Register with the template engine
+        self.template_engine.load_docx_template(template_info.html_content)
+
+        # Update EmailBuilder with the override subject
+        self.send_service.email_builder.override_subject = subject
+
+        # Clear previously loaded students (template changed)
+        if self.students:
+            self._append_log("Template changed — previously loaded student data has been cleared.")
+        self.students = []
+        self.html_map = {}
+        self.progress_bar.setValue(0)
+        self.progress_bar.setMaximum(0)
+        self.progress_label.setText("0 / 0")
+
+        # Update UI
+        self.template_path_input.setText(path)
+        vars_display = ", ".join(template_info.all_variables) if template_info.all_variables else "(none)"
+        special_note = f" | Special: {', '.join(template_info.special_variables)}" if template_info.special_variables else ""
+        self.template_vars_label.setText(f"Variables: {vars_display}{special_note}")
+
+        self._append_log(
+            f"Loaded template: {docx_path.name} | "
+            f"Subject: {subject} | "
+            f"{len(template_info.simple_variables)} variable(s), "
+            f"{len(template_info.special_variables)} special"
+        )
+        self.status_label.setText("Template loaded. Select an Excel file to continue.")
+
+    def _clear_uploaded_template(self) -> None:
+        """Remove the uploaded DOCX template and revert to bundled HTML templates."""
+        if self.template_meta is None:
+            return
+
+        self.template_engine.unload_uploaded_template()
+        self.send_service.email_builder.override_subject = None
+        self.template_meta = None
+        self.template_path_input.clear()
+        self.template_vars_label.setText("")
+
+        # Clear loaded data (bundled templates use student.template_name column)
+        self.students = []
+        self.html_map = {}
+        self.progress_bar.setValue(0)
+        self.progress_bar.setMaximum(0)
+        self.progress_label.setText("0 / 0")
+
+        self._append_log("Uploaded template cleared. Using bundled HTML templates.")
+        self.status_label.setText("Ready")
+
     def _load_excel(self, path: Path) -> None:
+        # When a DOCX template is active, validate columns against template variables
+        if self.template_meta is not None and self.template_meta.variables:
+            template_vars = self.template_meta.variables
+            try:
+                # Read just the headers first for validation
+                import pandas as pd
+                df_headers = pd.read_excel(path, engine="openpyxl", nrows=0)
+                report = Validator.validate_template_against_excel(
+                    template_vars,
+                    df_headers.columns,
+                )
+                if not report.is_clean:
+                    self._show_mismatch_dialog(report, path)
+                    return
+            except Exception as exc:
+                self._append_log(str(exc))
+                ErrorDialog.show_error(self, "Load Error", str(exc))
+                self.status_label.setText("Failed to read Excel file.")
+                return
+
         try:
             self.students = self.excel_reader.load_students(path)
         except Exception as exc:
@@ -219,6 +378,56 @@ class MainWindow(QMainWindow):
         self.preview_worker.status_message.connect(self._append_log)
         self.preview_worker.finished.connect(self._on_preview_finished)
         self.preview_worker.start()
+
+    def _show_mismatch_dialog(self, report, path: Path) -> None:
+        """Show a dialog when template variables don't match Excel columns."""
+        from PySide6.QtWidgets import QMessageBox
+
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Column Mismatch")
+        msg.setIcon(QMessageBox.Warning)
+
+        lines = ["The uploaded template's variables do not match the Excel file columns.\n"]
+        if report.missing_in_excel:
+            lines.append("Missing from Excel (template needs these):")
+            for v in report.missing_in_excel[:10]:
+                lines.append(f"  • {{ {{{v}}} }}")
+            if len(report.missing_in_excel) > 10:
+                lines.append(f"  ... and {len(report.missing_in_excel) - 10} more")
+            lines.append("")
+        if report.unused_excel_columns:
+            lines.append("Unused Excel columns (not in template):")
+            for c in report.unused_excel_columns[:10]:
+                lines.append(f"  • {c}")
+            if len(report.unused_excel_columns) > 10:
+                lines.append(f"  ... and {len(report.unused_excel_columns) - 10} more")
+
+        msg.setText("\n".join(lines))
+        msg.setInformativeText("Do you want to continue anyway? Missing variables will appear as empty in the email.")
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg.setDefaultButton(QMessageBox.No)
+
+        if msg.exec() == QMessageBox.Yes:
+            self._append_log("User chose to continue despite column mismatch.")
+            try:
+                self.students = self.excel_reader.load_students(path)
+            except Exception as exc:
+                self._append_log(str(exc))
+                ErrorDialog.show_error(self, "Load Error", str(exc))
+                self.status_label.setText("Failed to load Excel file.")
+                return
+            self.progress_bar.setMaximum(len(self.students))
+            self.progress_label.setText(f"0 / {len(self.students)}")
+            self._append_log(f"Loaded {len(self.students)} students from {path}")
+            self.status_label.setText("Generating email previews...")
+            self.preview_worker = PreviewWorker(self.preview_service, self.students)
+            self.preview_worker.progress_changed.connect(self._on_progress_changed)
+            self.preview_worker.status_message.connect(self._append_log)
+            self.preview_worker.finished.connect(self._on_preview_finished)
+            self.preview_worker.start()
+        else:
+            self._append_log("Excel load cancelled due to column mismatch.")
+            self.status_label.setText("Ready")
 
     def _on_preview_finished(self, html_map: dict[str, str]) -> None:
         self.html_map = html_map

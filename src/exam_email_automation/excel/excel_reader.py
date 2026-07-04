@@ -7,6 +7,7 @@ import pandas as pd
 
 from exam_email_automation.models.module_result import ModuleResult
 from exam_email_automation.models.student import Student
+from exam_email_automation.templates.docx_parser import normalize_variable_name
 from exam_email_automation.validation.validator import Validator
 from exam_email_automation.logging.logger import configure_logging
 
@@ -50,8 +51,24 @@ class ExcelReader:
     def _normalize_columns(self, columns: Iterable[str]) -> dict[str, str]:
         return {str(column): str(column).strip().lower() for column in columns}
 
+    KNOWN_COLUMNS = {
+        "student id", "first name", "surname", "email",
+        "email template", "stage average", "pass credits",
+        "number of failed modules",
+    }
+
     def _build_student(self, student_id: str, rows: pd.DataFrame) -> Student:
         first_row = rows.iloc[0]
+        # Capture columns beyond the known set as extra_fields
+        extra_fields: dict[str, str] = {}
+        for col in rows.columns:
+            norm_col = str(col).strip().lower()
+            if norm_col not in self.KNOWN_COLUMNS:
+                key = normalize_variable_name(str(col))
+                value = _safe_str(first_row.get(col, ""))
+                if key:  # skip empty keys
+                    extra_fields[key] = value
+
         student = Student(
             student_id=_safe_str(student_id),
             first_name=_safe_str(first_row.get("first name", "")),
@@ -61,6 +78,7 @@ class ExcelReader:
             stage_average=_safe_str(first_row.get("stage average", "")),
             pass_credits=_safe_str(first_row.get("pass credits", "")),
             failed_modules=_safe_str(first_row.get("number of failed modules", "")),
+            extra_fields=extra_fields,
         )
 
         for _, row in rows.iterrows():
