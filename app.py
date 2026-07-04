@@ -24,6 +24,19 @@ def _resolve_templates_folder(config) -> None:
 
 def main() -> None:
     app = QApplication([])
+
+    # Apply the design system theme (styles.qss) before creating any windows
+    from exam_email_automation.gui.theme import apply_theme
+    apply_theme(app)
+
+    # QSettings identity (enables window geometry persistence)
+    app.setOrganizationName("ExamEmailAutomation")
+    app.setApplicationName("Exam Email Automation")
+
+    # Set application window icon
+    from exam_email_automation.gui.icon import create_app_icon
+    app.setWindowIcon(create_app_icon())
+
     config = ConfigLoader().load()
     _resolve_templates_folder(config)
     window = MainWindow(config)

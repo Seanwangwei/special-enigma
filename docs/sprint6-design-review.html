@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint 6 — Design Review & QA</title>
+<style>
+  :root {
+    --green: #16a34a; --red: #dc2626; --amber: #d97706;
+    --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0;
+    --slate-500: #64748b; --slate-800: #1e293b;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: #1e293b; background: #f1f5f9; line-height: 1.5; }
+  .header { background: linear-gradient(135deg, #1e293b, #334155); color: white; padding: 40px 32px; text-align: center; }
+  .header h1 { font-size: 2rem; font-weight: 700; }
+  .header p { color: #94a3b8; margin-top: 4px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+  .checklist-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 8px 0 16px; }
+  .check-item { font-size: 12px; padding: 6px 8px; border-radius: 4px; text-align: center; }
+  .check-pass { background: #f0fdf4; color: #16a34a; }
+  .check-fail { background: #fef2f2; color: #dc2626; }
+  .check-warn { background: #fffbeb; color: #d97706; }
+  .check-pending { background: #f8fafc; color: #94a3b8; }
+
+  .screen-section { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .screen-section h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; }
+  .screen-section .screen-desc { font-size: 14px; color: #64748b; margin-bottom: 16px; }
+
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .comparison-col { }
+  .comparison-col h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .comparison-col .img-placeholder {
+    width: 100%; aspect-ratio: 4/3;
+    background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #94a3b8; font-size: 14px; text-align: center; padding: 20px;
+  }
+  .comparison-col .img-placeholder.filled { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
+
+  .notes { font-size: 13px; color: #64748b; background: #f8fafc; border-radius: 6px; padding: 10px 14px; margin-top: 12px; }
+  .notes strong { color: #1e293b; }
+
+  .summary-section { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
+  .summary-section h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .summary-card { text-align: center; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .summary-card .num { font-size: 2rem; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1>Sprint 6 — Design Review & QA</h1>
+  <p>Side-by-side screenshot comparison: design mockup vs. implemented app</p>
+  <p style="margin-top:8px;font-size:12px;color:#64748b;">Source: docs/design-mockup.html | Date: July 5, 2026</p>
+</header>
+
+<div class="container">
+
+<!-- OVERALL SUMMARY -->
+<div class="summary-section" style="margin-bottom:24px;">
+  <h2>Overall Conformance Summary</h2>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="num" style="color:#94a3b8;">8</div>
+      <div style="font-size:13px;color:#64748b;">Screens to review</div>
+    </div>
+    <div class="summary-card">
+      <div class="num" style="color:#94a3b8;">6</div>
+      <div style="font-size:13px;color:#64748b;">Dimensions per screen</div>
+    </div>
+    <div class="summary-card">
+      <div class="num" style="color:#94a3b8;">48</div>
+      <div style="font-size:13px;color:#64748b;">Total checkpoints</div>
+    </div>
+    <div class="summary-card">
+      <div class="num" style="color:#94a3b8;">TBD</div>
+      <div style="font-size:13px;color:#64748b;">Pass rate</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREEN 1: Main Window — Empty State -->
+<!-- ============================================================ -->
+<div class="screen-section">
+  <h2>Screen 1 — Main Window (Empty State)</h2>
+  <p class="screen-desc">Initial launch state. Progress and Log sections hidden. Actions disabled. All three file sections show Browse + Clear.</p>
+
+  <div class="checklist-grid">
+    <span class="check-item check-pending">Colors</span>
+    <span class="check-item check-pending">Typography</span>
+    <span class="check-item check-pending">Spacing</span>
+    <span class="check-item check-pending">Layout</span>
+    <span class="check-item check-pending">States</span>
+    <span class="check-item check-pending">Resize</span>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-col">
+      <h4 style="color:#2563eb;">📐 Design Mockup (Reference)</h4>
+      <div class="img-placeholder">Open docs/design-mockup.html → Screen 1<br>Take screenshot and paste here</div>
+    </div>
+    <div class="comparison-col">
+      <h4 style="color:#16a34a;">🖥️ App Screenshot (Implementation)</h4>
+      <div class="img-placeholder">Launch app with python3 app.py<br>Empty state → screenshot → paste here</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <strong>Checklist:</strong><br>
+    □ Section cards: Template, Excel, Attachments, Actions all visible<br>
+    □ All three file sections have Browse… + Clear buttons<br>
+    □ Actions section: Preview, Send Test, Send All — all disabled<br>
+    □ Progress and Log sections hidden<br>
+    □ Status bar: "Ready"<br>
+    □ Window title: "Exam Result Email Automation" centered in titlebar<br>
+    □ Window ~680×680, minimum 480×400
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREEN 2: Main Window — Loaded State -->
+<!-- ============================================================ -->
+<div class="screen-section">
+  <h2>Screen 2 — Main Window (Data Loaded)</h2>
+  <p class="screen-desc">After loading template + Excel. Variable badges visible. Actions enabled. Progress and Log visible.</p>
+
+  <div class="checklist-grid">
+    <span class="check-item check-pending">Colors</span>
+    <span class="check-item check-pending">Typography</span>
+    <span class="check-item check-pending">Spacing</span>
+    <span class="check-item check-pending">Layout</span>
+    <span class="check-item check-pending">States</span>
+    <span class="check-item check-pending">Resize</span>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-col">
+      <h4 style="color:#2563eb;">📐 Design Mockup (Reference)</h4>
+      <div class="img-placeholder">Open docs/design-mockup.html → Screen 2<br>Take screenshot and paste here</div>
+    </div>
+    <div class="comparison-col">
+      <h4 style="color:#16a34a;">🖥️ App Screenshot (Implementation)</h4>
+      <div class="img-placeholder">Load .docx template + Excel file<br>Take screenshot → paste here</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <strong>Checklist:</strong><br>
+    □ Template card shows filename + variable badges (blue pills)<br>
+    □ Excel card shows filename + student count badge (green)<br>
+    □ Attachments card shows "No file selected" placeholder<br>
+    □ Actions all enabled (Preview primary blue, others secondary)<br>
+    □ Progress bar visible with percentage<br>
+    □ Log panel visible with dark theme + timestamped entries<br>
+    □ Status bar shows current operation
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREEN 3: Preview Dialog -->
+<!-- ============================================================ -->
+<div class="screen-section">
+  <h2>Screen 3 — Email Preview Dialog</h2>
+  <p class="screen-desc">Split pane: student list (left, blue highlight) + rendered HTML email (right).</p>
+
+  <div class="checklist-grid">
+    <span class="check-item check-pending">Colors</span>
+    <span class="check-item check-pending">Typography</span>
+    <span class="check-item check-pending">Spacing</span>
+    <span class="check-item check-pending">Layout</span>
+    <span class="check-item check-pending">States</span>
+    <span class="check-item check-pending">Resize</span>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-col">
+      <h4 style="color:#2563eb;">📐 Design Mockup (Reference)</h4>
+      <div class="img-placeholder">Open docs/design-mockup.html → Screen 3<br>Take screenshot and paste here</div>
+    </div>
+    <div class="comparison-col">
+      <h4 style="color:#16a34a;">🖥️ App Screenshot (Implementation)</h4>
+      <div class="img-placeholder">Click "Preview Emails" in app<br>Take screenshot → paste here</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <strong>Checklist:</strong><br>
+    □ Left: student list with names + IDs<br>
+    □ Active student highlighted in blue<br>
+    □ Right: rendered HTML email<br>
+    □ Instructions text visible at top<br>
+    □ Close button right-aligned (secondary style)<br>
+    □ Dialog centered on parent window
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREEN 4: Validation Dialog -->
+<!-- ============================================================ -->
+<div class="screen-section">
+  <h2>Screen 4 — Validation Results Dialog</h2>
+  <p class="screen-desc">Red error card + color-coded details + two action buttons (Continue Anyway / Go Back & Fix).</p>
+
+  <div class="checklist-grid">
+    <span class="check-item check-pending">Colors</span>
+    <span class="check-item check-pending">Typography</span>
+    <span class="check-item check-pending">Spacing</span>
+    <span class="check-item check-pending">Layout</span>
+    <span class="check-item check-pending">States</span>
+    <span class="check-item check-pending">Resize</span>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-col">
+      <h4 style="color:#2563eb;">📐 Design Mockup (Reference)</h4>
+      <div class="img-placeholder">Open docs/design-mockup.html → Screen 4<br>Take screenshot and paste here</div>
+    </div>
+    <div class="comparison-col">
+      <h4 style="color:#16a34a;">🖥️ App Screenshot (Implementation)</h4>
+      <div class="img-placeholder">Load Excel with missing/invalid data<br>Trigger validation → screenshot → paste here</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <strong>Checklist:</strong><br>
+    □ Title: "⚠ Validation Issues Found"<br>
+    □ Red error card with count: "N validation issue(s) detected"<br>
+    □ Details: color-coded (red=missing email, amber=duplicate IDs)<br>
+    □ "Continue Anyway" button (ghost style, left)<br>
+    □ "Go Back && Fix" button (primary style, right)<br>
+    □ Dialog centered on parent window
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREEN 5: Delivery Method Dialog -->
+<!-- ============================================================ -->
+<div class="screen-section">
+  <h2>Screen 5 — Delivery Method Dialog (Wizard Step 1/3)</h2>
+  <p class="screen-desc">Step indicator (Step 1 active) + radio cards (Outlook/SMTP) + Outlook account section.</p>
+
+  <div class="checklist-grid">
+    <span class="check-item check-pending">Colors</span>
+    <span class="check-item check-pending">Typography</span>
+    <span class="check-item check-pending">Spacing</span>
+    <span class="check-item check-pending">Layout</span>
+    <span class="check-item check-pending">States</span>
+    <span class="check-item check-pending">Resize</span>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-col">
+      <h4 style="color:#2563eb;">📐 Design Mockup (Reference)</h4>
+      <div class="img-placeholder">Open docs/design-mockup.html → Screen 5<br>Take screenshot and paste here</div>
+    </div>
+    <div class="comparison-col">
+      <h4 style="color:#16a34a;">🖥️ App Screenshot (Implementation)</h4>
+      <div class="img-placeholder">Click "Send All Emails" → Step 1<br>Take screenshot → paste here</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <strong>Checklist:</strong><br>
+    □ Step indicator: Step 1 blue, Steps 2-3 gray<br>
+    □ Title: "Choose Delivery Method"<br>
+    □ Radio card: Outlook (Desktop) — selected by default<br>
+    □ Radio card: SMTP (Email Server)<br>
+    □ Outlook account section with "From:" + dropdown<br>
+    □ Switching to SMTP hides the Outlook account section<br>
+    □ Back (ghost, left) + Continue (primary, right)<br>
+    □ Dialog centered on parent window
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREEN 6: Delivery Mode Dialog -->
+<!-- ============================================================ -->
+<div class="screen-section">
+  <h2>Screen 6 — Delivery Mode Dialog (Wizard Step 2/3)</h2>
+  <p class="screen-desc">Step indicator (2 active, 1 done) + three radio cards with emoji + descriptions.</p>
+
+  <div class="checklist-grid">
+    <span class="check-item check-pending">Colors</span>
+    <span class="check-item check-pending">Typography</span>
+    <span class="check-item check-pending">Spacing</span>
+    <span class="check-item check-pending">Layout</span>
+    <span class="check-item check-pending">States</span>
+    <span class="check-item check-pending">Resize</span>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-col">
+      <h4 style="color:#2563eb;">📐 Design Mockup (Reference)</h4>
+      <div class="img-placeholder">Open docs/design-mockup.html → Screen 6<br>Take screenshot and paste here</div>
+    </div>
+    <div class="comparison-col">
+      <h4 style="color:#16a34a;">🖥️ App Screenshot (Implementation)</h4>
+      <div class="img-placeholder">Click "Continue" from Method dialog<br>Take screenshot → paste here</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <strong>Checklist:</strong><br>
+    □ Step indicator: Steps 1 done (green ✓), Step 2 active (blue), Step 3 gray<br>
+    □ Title: "How would you like to process the emails?"<br>
+    □ 🔍 Preview Only — "Generate HTML previews without sending any emails"<br>
+    □ 📝 Create Outlook Drafts (Default) — pre-selected<br>
+    □ 📨 Send Immediately — with warning description<br>
+    □ Back (ghost) + Continue (primary)<br>
+    □ Dialog centered on parent window
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREEN 7: Confirmation Dialog -->
+<!-- ============================================================ -->
+<div class="screen-section">
+  <h2>Screen 7 — Confirmation Dialog (Wizard Step 3/3)</h2>
+  <p class="screen-desc">Step indicator (3 active, 1+2 done) + stats card + delivery info card + Process button.</p>
+
+  <div class="checklist-grid">
+    <span class="check-item check-pending">Colors</span>
+    <span class="check-item check-pending">Typography</span>
+    <span class="check-item check-pending">Spacing</span>
+    <span class="check-item check-pending">Layout</span>
+    <span class="check-item check-pending">States</span>
+    <span class="check-item check-pending">Resize</span>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-col">
+      <h4 style="color:#2563eb;">📐 Design Mockup (Reference)</h4>
+      <div class="img-placeholder">Open docs/design-mockup.html → Screen 7<br>Take screenshot and paste here</div>
+    </div>
+    <div class="comparison-col">
+      <h4 style="color:#16a34a;">🖥️ App Screenshot (Implementation)</h4>
+      <div class="img-placeholder">Click "Continue" from Mode dialog<br>Take screenshot → paste here</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <strong>Checklist:</strong><br>
+    □ Step indicator: Steps 1-2 done (green ✓), Step 3 active (blue)<br>
+    □ Title: "Ready to Process"<br>
+    □ Stats card: SUMMARY header + divider + Students/PASS/FAIL/EC counts<br>
+    □ PASS count green, FAIL count red, EC count amber<br>
+    □ Delivery card: blue accent, Method + Mode displayed<br>
+    □ "📨 Process N Emails" button (primary, large)<br>
+    □ Back (ghost) + Process (primary lg)<br>
+    □ Dialog centered on parent window
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREEN 8: Results Dialog -->
+<!-- ============================================================ -->
+<div class="screen-section">
+  <h2>Screen 8 — Results Dialog</h2>
+  <p class="screen-desc">Success header with green check + sent/failed badges + tabbed records + clipboard copy.</p>
+
+  <div class="checklist-grid">
+    <span class="check-item check-pending">Colors</span>
+    <span class="check-item check-pending">Typography</span>
+    <span class="check-item check-pending">Spacing</span>
+    <span class="check-item check-pending">Layout</span>
+    <span class="check-item check-pending">States</span>
+    <span class="check-item check-pending">Resize</span>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-col">
+      <h4 style="color:#2563eb;">📐 Design Mockup (Reference)</h4>
+      <div class="img-placeholder">Open docs/design-mockup.html → Screen 8<br>Take screenshot and paste here</div>
+    </div>
+    <div class="comparison-col">
+      <h4 style="color:#16a34a;">🖥️ App Screenshot (Implementation)</h4>
+      <div class="img-placeholder">Complete a send operation<br>Take screenshot of results → paste here</div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <strong>Checklist:</strong><br>
+    □ Green checkmark circle + "Processing Complete"<br>
+    □ Sent count (green badge) + Failed count (red badge)<br>
+    □ Tab "All Records" selected by default<br>
+    □ Tab "Errors (N)" shows error count<br>
+    □ Records in monospace pipe-delimited format<br>
+    □ "📋 Copy to Clipboard" (secondary) + "Close" (primary)<br>
+    □ Copy button shows "✓ Copied!" feedback for 1.5s<br>
+    □ Dialog centered on parent window
+  </div>
+</div>
+
+</div>
+</body>
+</html>

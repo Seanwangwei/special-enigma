@@ -3,7 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 from PySide6 import QtCore
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QSettings, QTimer
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -17,6 +18,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QGroupBox,
     QInputDialog,
+    QApplication,
+    QDialog,
 )
 from collections import Counter
 from exam_email_automation.config.config_loader import Config
@@ -28,7 +31,7 @@ from exam_email_automation.gui.delivery_mode_dialog import DeliveryModeDialog
 from exam_email_automation.gui.dialogs import ErrorDialog, InfoDialog, PreviewDialog
 from exam_email_automation.gui.results_dialog import ResultsDialog
 from exam_email_automation.gui.validation_dialog import ValidationResultsDialog
-from exam_email_automation.gui.widgets import SectionLabel
+from exam_email_automation.gui.widgets import BadgeLabel, SectionLabel, StepIndicator
 from exam_email_automation.logging.logger import configure_logging
 from exam_email_automation.services.preview_service import PreviewService
 from exam_email_automation.services.send_service import MODE_MAP, SendService
@@ -103,6 +106,8 @@ class MainWindow(QMainWindow):
         self.template_meta: Optional[TemplateMeta] = None
         self._prepare_folders()
         self._build_ui()
+        self._setup_shortcuts()
+        self._load_settings()
 
     def _prepare_folders(self) -> None:
         self.config.preview_folder.mkdir(parents=True, exist_ok=True)
@@ -112,111 +117,138 @@ class MainWindow(QMainWindow):
     def _build_ui(self) -> None:
         container = QWidget()
         main_layout = QVBoxLayout(container)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(12)
 
-        # --- Template Upload Section (new in Sprint 5) ---
-        template_group = QGroupBox("Email Template (.docx)")
+        # --- Template Upload Section ---
+        template_group = QGroupBox("📄 Email Template (.docx)")
         template_layout = QVBoxLayout(template_group)
         template_row = QHBoxLayout()
         self.template_path_input = QLineEdit()
         self.template_path_input.setReadOnly(True)
         self.template_path_input.setPlaceholderText("Upload a Word template with {{variables}}...")
-        upload_template_button = QPushButton("Upload .docx Template")
+        upload_template_button = QPushButton("Browse…")
+        upload_template_button.setProperty("cssClass", "secondary")
         upload_template_button.clicked.connect(self._upload_docx_template)
         clear_template_button = QPushButton("Clear")
+        clear_template_button.setProperty("cssClass", "ghost")
         clear_template_button.clicked.connect(self._clear_uploaded_template)
-        template_row.addWidget(self.template_path_input)
+        template_row.addWidget(self.template_path_input, 1)
         template_row.addWidget(upload_template_button)
         template_row.addWidget(clear_template_button)
         template_layout.addLayout(template_row)
+        # Badge container for detected variables
+        self.template_badges_layout = QHBoxLayout()
+        self.template_badges_layout.setSpacing(4)
+        self.template_badges_layout.addStretch()
+        template_layout.addLayout(self.template_badges_layout)
         self.template_vars_label = QLabel("")
-        self.template_vars_label.setStyleSheet("color: #1565c0;")
+        self.template_vars_label.setProperty("cssClass", "template-vars")
+        self.template_vars_label.setVisible(False)
         template_layout.addWidget(self.template_vars_label)
 
         # --- Excel File Section ---
-        file_group = QGroupBox("Excel File")
+        file_group = QGroupBox("📊 Excel File")
         file_layout = QHBoxLayout(file_group)
         self.file_path_input = QLineEdit()
         self.file_path_input.setReadOnly(True)
-        browse_excel_button = QPushButton("Browse...")
+        self.file_path_input.setPlaceholderText("Browse for student results spreadsheet (.xlsx)...")
+        browse_excel_button = QPushButton("Browse…")
+        browse_excel_button.setProperty("cssClass", "secondary")
         browse_excel_button.clicked.connect(self._browse_excel_file)
-        file_layout.addWidget(self.file_path_input)
+        clear_excel_button = QPushButton("Clear")
+        clear_excel_button.setProperty("cssClass", "ghost")
+        clear_excel_button.clicked.connect(self._clear_excel)
+        file_layout.addWidget(self.file_path_input, 1)
         file_layout.addWidget(browse_excel_button)
+        file_layout.addWidget(clear_excel_button)
 
-        template_status = SectionLabel(self._template_status_text())
-        template_status.setAlignment(Qt.AlignLeft)
-
-        attachment_group = QGroupBox("Attachments")
+        # --- Attachments Section ---
+        attachment_group = QGroupBox("📎 Attachments (optional)")
         attachment_layout = QHBoxLayout(attachment_group)
         self.attachment_path_input = QLineEdit()
         self.attachment_path_input.setReadOnly(True)
-        browse_attachment_button = QPushButton("Browse...")
+        self.attachment_path_input.setPlaceholderText("No file selected")
+        browse_attachment_button = QPushButton("Browse…")
+        browse_attachment_button.setProperty("cssClass", "secondary")
         browse_attachment_button.clicked.connect(self._browse_attachment)
         clear_attachment_button = QPushButton("Clear")
+        clear_attachment_button.setProperty("cssClass", "ghost")
         clear_attachment_button.clicked.connect(self._clear_attachments)
-        attachment_layout.addWidget(self.attachment_path_input)
+        attachment_layout.addWidget(self.attachment_path_input, 1)
         attachment_layout.addWidget(browse_attachment_button)
         attachment_layout.addWidget(clear_attachment_button)
 
-        action_group = QGroupBox("Actions")
+        # --- Actions Section ---
+        action_group = QGroupBox("⚡ Actions")
         action_layout = QHBoxLayout(action_group)
-        preview_button = QPushButton("Preview Emails")
-        preview_button.clicked.connect(self._preview_emails)
-        test_button = QPushButton("Send Test Email")
-        test_button.clicked.connect(self._send_test_email)
-        send_all_button = QPushButton("Send All Emails")
-        send_all_button.clicked.connect(self._send_all_emails)
-        action_layout.addWidget(preview_button)
-        action_layout.addWidget(test_button)
-        action_layout.addWidget(send_all_button)
+        self.preview_button = QPushButton("▶ Preview Emails")
+        self.preview_button.setProperty("cssClass", "primary")
+        self.preview_button.clicked.connect(self._preview_emails)
+        self.preview_button.setEnabled(False)
+        self.test_button = QPushButton("✉ Send Test Email")
+        self.test_button.setProperty("cssClass", "secondary")
+        self.test_button.clicked.connect(self._send_test_email)
+        self.test_button.setEnabled(False)
+        self.send_all_button = QPushButton("📨 Send All Emails")
+        self.send_all_button.setProperty("cssClass", "secondary")
+        self.send_all_button.clicked.connect(self._send_all_emails)
+        self.send_all_button.setEnabled(False)
+        action_layout.addWidget(self.preview_button)
+        action_layout.addWidget(self.test_button)
+        action_layout.addWidget(self.send_all_button)
 
-        progress_group = QGroupBox("Progress")
-        progress_layout = QVBoxLayout(progress_group)
+        # --- Progress Section (hidden until data loaded) ---
+        self.progress_group = QGroupBox("📈 Progress")
+        progress_layout = QVBoxLayout(self.progress_group)
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
         self.progress_label = QLabel("0 / 0")
+        self.progress_label.setStyleSheet("font-size: 12px; color: #64748b; border: none; background: transparent;")
         progress_layout.addWidget(self.progress_bar)
         progress_layout.addWidget(self.progress_label)
+        self.progress_group.setVisible(False)
 
-        log_group = QGroupBox("Log")
-        log_layout = QVBoxLayout(log_group)
+        # --- Log Section (hidden until data loaded) ---
+        self.log_group = QGroupBox("📋 Log")
+        log_layout = QVBoxLayout(self.log_group)
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
+        self.log_output.setProperty("cssClass", "log")
         log_layout.addWidget(self.log_output)
+        self.log_group.setVisible(False)
 
+        # --- Status bar ---
         self.status_label = QLabel("Ready")
+        self.status_label.setProperty("cssClass", "status-label")
 
         main_layout.addWidget(template_group)
         main_layout.addWidget(file_group)
-        main_layout.addWidget(template_status)
         main_layout.addWidget(attachment_group)
         main_layout.addWidget(action_group)
-        main_layout.addWidget(progress_group)
-        main_layout.addWidget(log_group)
+        main_layout.addWidget(self.progress_group)
+        main_layout.addWidget(self.log_group)
         main_layout.addWidget(self.status_label)
 
         self.setCentralWidget(container)
         self.resize(680, 680)
         self.setMinimumSize(480, 400)
 
-    def _template_status_text(self) -> str:
-        # If a DOCX template is uploaded, show its info prominently
-        if self.template_meta is not None:
-            meta = self.template_meta
-            vars_str = ", ".join(meta.variables) if meta.variables else "(none)"
-            return f"Active Template: {meta.template_name} | Subject: {meta.subject} | Variables: {vars_str}"
-
-        # Otherwise show bundled HTML templates
-        try:
-            templates = self.template_engine.environment.list_templates()
-        except Exception:
-            templates = []
-        if not templates:
-            return "Templates\n(No templates found)"
-        statuses = [
-            f"{name} ✓ Loaded" if name.endswith(".html") else name
-            for name in sorted(templates)
-        ]
-        return "Templates\n" + " | ".join(statuses)
+    def _clear_excel(self) -> None:
+        """Clear the loaded Excel file and reset related state."""
+        self.file_path_input.clear()
+        self.students = []
+        self.html_map = {}
+        self.progress_bar.setValue(0)
+        self.progress_bar.setMaximum(0)
+        self.progress_label.setText("0 / 0")
+        self.preview_button.setEnabled(False)
+        self.test_button.setEnabled(False)
+        self.send_all_button.setEnabled(False)
+        self.progress_group.setVisible(False)
+        self.log_group.setVisible(False)
+        self._append_log("Excel file cleared.")
+        self.status_label.setText("Ready")
 
     def _browse_excel_file(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Select Excel File", str(Path.cwd()), "Excel Files (*.xlsx)")
@@ -305,9 +337,18 @@ class MainWindow(QMainWindow):
 
         # Update UI
         self.template_path_input.setText(path)
-        vars_display = ", ".join(template_info.all_variables) if template_info.all_variables else "(none)"
+
+        # Show variable badges
+        self._clear_template_badges()
+        if template_info.all_variables:
+            for var in template_info.all_variables:
+                badge = BadgeLabel(var, variant="info")
+                badge.setToolTip(f"Template variable: {{{{ {var} }}}}")
+                self.template_badges_layout.insertWidget(self.template_badges_layout.count() - 1, badge)
+
         special_note = f" | Special: {', '.join(template_info.special_variables)}" if template_info.special_variables else ""
-        self.template_vars_label.setText(f"Variables: {vars_display}{special_note}")
+        self.template_vars_label.setText(f"{len(template_info.all_variables)} variable(s) detected{special_note}")
+        self.template_vars_label.setVisible(True)
 
         self._append_log(
             f"Loaded template: {docx_path.name} | "
@@ -326,7 +367,8 @@ class MainWindow(QMainWindow):
         self.send_service.email_builder.override_subject = None
         self.template_meta = None
         self.template_path_input.clear()
-        self.template_vars_label.setText("")
+        self._clear_template_badges()
+        self.template_vars_label.setVisible(False)
 
         # Clear loaded data (bundled templates use student.template_name column)
         self.students = []
@@ -334,9 +376,21 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(0)
         self.progress_bar.setMaximum(0)
         self.progress_label.setText("0 / 0")
+        self.preview_button.setEnabled(False)
+        self.test_button.setEnabled(False)
+        self.send_all_button.setEnabled(False)
+        self.progress_group.setVisible(False)
 
         self._append_log("Uploaded template cleared. Using bundled HTML templates.")
         self.status_label.setText("Ready")
+
+    def _clear_template_badges(self) -> None:
+        """Remove all variable badge widgets from the badge layout."""
+        while self.template_badges_layout.count() > 1:  # keep the trailing stretch
+            item = self.template_badges_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
 
     def _load_excel(self, path: Path) -> None:
         # When a DOCX template is active, validate columns against template variables
@@ -369,6 +423,11 @@ class MainWindow(QMainWindow):
 
         self.progress_bar.setMaximum(len(self.students))
         self.progress_label.setText(f"0 / {len(self.students)}")
+        self.progress_group.setVisible(True)
+        self.log_group.setVisible(True)
+        self.preview_button.setEnabled(True)
+        self.test_button.setEnabled(True)
+        self.send_all_button.setEnabled(True)
         self._append_log(f"Loaded {len(self.students)} students from {path}")
         self.status_label.setText("Generating email previews...")
 
@@ -378,6 +437,7 @@ class MainWindow(QMainWindow):
         self.preview_worker.status_message.connect(self._append_log)
         self.preview_worker.finished.connect(self._on_preview_finished)
         self.preview_worker.start()
+        QApplication.setOverrideCursor(Qt.WaitCursor)
 
     def _show_mismatch_dialog(self, report, path: Path) -> None:
         """Show a dialog when template variables don't match Excel columns."""
@@ -418,6 +478,11 @@ class MainWindow(QMainWindow):
                 return
             self.progress_bar.setMaximum(len(self.students))
             self.progress_label.setText(f"0 / {len(self.students)}")
+            self.progress_group.setVisible(True)
+            self.log_group.setVisible(True)
+            self.preview_button.setEnabled(True)
+            self.test_button.setEnabled(True)
+            self.send_all_button.setEnabled(True)
             self._append_log(f"Loaded {len(self.students)} students from {path}")
             self.status_label.setText("Generating email previews...")
             self.preview_worker = PreviewWorker(self.preview_service, self.students)
@@ -425,6 +490,7 @@ class MainWindow(QMainWindow):
             self.preview_worker.status_message.connect(self._append_log)
             self.preview_worker.finished.connect(self._on_preview_finished)
             self.preview_worker.start()
+            QApplication.setOverrideCursor(Qt.WaitCursor)
         else:
             self._append_log("Excel load cancelled due to column mismatch.")
             self.status_label.setText("Ready")
@@ -433,12 +499,14 @@ class MainWindow(QMainWindow):
         self.html_map = html_map
         self._append_log("Email previews generated.")
         self.status_label.setText("Excel file loaded successfully.")
+        QApplication.restoreOverrideCursor()
 
     def _preview_emails(self) -> None:
         if not self.students:
             ErrorDialog.show_error(self, "Preview Error", "Please load an Excel file first.")
             return
         dialog = PreviewDialog(self.students, self.html_map, parent=self)
+        self._center_dialog(dialog)
         dialog.exec()
 
     def _validate_loaded_data(self) -> dict:
@@ -508,12 +576,14 @@ class MainWindow(QMainWindow):
 
         # Shortened wizard: Delivery Method → Delivery Mode
         method_dialog = DeliveryMethodDialog(self)
+        self._center_dialog(method_dialog)
         if method_dialog.exec() != DeliveryMethodDialog.DialogCode.Accepted:
             return
         method = method_dialog.get_selected_method()
         mailbox = method_dialog.get_selected_mailbox()
 
         mode_dialog = DeliveryModeDialog(self, default_mode="send_immediately")
+        self._center_dialog(mode_dialog)
         if mode_dialog.exec() != DeliveryModeDialog.DialogCode.Accepted:
             return
         mode_str = mode_dialog.get_selected_mode()
@@ -553,6 +623,7 @@ class MainWindow(QMainWindow):
         has_errors = any(v for v in validation_errors.values())
         if has_errors:
             validation_dialog = ValidationResultsDialog(self, validation_errors)
+            self._center_dialog(validation_dialog)
             if validation_dialog.exec() != ValidationResultsDialog.DialogCode.Accepted:
                 self._append_log("Send cancelled by user after validation errors.")
                 self.status_label.setText("Send cancelled.")
@@ -560,6 +631,7 @@ class MainWindow(QMainWindow):
 
         # Step 2: Delivery Method (Outlook vs SMTP)
         method_dialog = DeliveryMethodDialog(self)
+        self._center_dialog(method_dialog)
         if method_dialog.exec() != DeliveryMethodDialog.DialogCode.Accepted:
             self._append_log("Send cancelled at delivery method selection.")
             self.status_label.setText("Send cancelled.")
@@ -571,6 +643,7 @@ class MainWindow(QMainWindow):
         # Step 3: Delivery Mode (Preview / Draft / Send)
         default_mode = self.config.delivery_mode if hasattr(self.config, 'delivery_mode') else "create_drafts"
         mode_dialog = DeliveryModeDialog(self, default_mode=default_mode)
+        self._center_dialog(mode_dialog)
         if mode_dialog.exec() != DeliveryModeDialog.DialogCode.Accepted:
             self._append_log("Send cancelled at delivery mode selection.")
             self.status_label.setText("Send cancelled.")
@@ -582,6 +655,7 @@ class MainWindow(QMainWindow):
         # Step 4: Confirmation
         summary = self._build_summary(delivery_method, mode_str)
         confirm_dialog = ConfirmationDialog(self, summary)
+        self._center_dialog(confirm_dialog)
         if confirm_dialog.exec() != ConfirmationDialog.DialogCode.Accepted:
             self._append_log("Send cancelled at confirmation.")
             self.status_label.setText("Send cancelled.")
@@ -605,12 +679,14 @@ class MainWindow(QMainWindow):
         self.send_worker.finished.connect(self._on_send_finished)
         self.send_worker.start()
         self.status_label.setText("Processing emails...")
+        QApplication.setOverrideCursor(Qt.WaitCursor)
 
     def _on_progress_changed(self, completed: int, total: int) -> None:
         self.progress_bar.setValue(completed)
         self.progress_label.setText(f"{completed} / {total}")
 
     def _on_send_finished(self, records: list[dict[str, str]]) -> None:
+        QApplication.restoreOverrideCursor()
         success = sum(1 for record in records if record["Status"] in ("Sent", "Draft Created", "Preview Generated", "Sent (SMTP)"))
         failure = len(records) - success
         self._append_log(f"Completed: {success} processed, {failure} failed.")
@@ -619,7 +695,56 @@ class MainWindow(QMainWindow):
         # Determine delivery mode for the results dialog
         mode_str = self.config.delivery_mode
         results_dialog = ResultsDialog(self, records, mode_str)
+        self._center_dialog(results_dialog)
         results_dialog.exec()
 
+    def _setup_shortcuts(self) -> None:
+        """Register keyboard shortcuts for the main window."""
+        QShortcut(QKeySequence("Ctrl+O"), self, self._browse_excel_file)
+        QShortcut(QKeySequence("Ctrl+P"), self, self._preview_emails)
+
+    def _load_settings(self) -> None:
+        settings = QSettings()
+        geo = settings.value("main_window/geometry")
+        if geo is not None:
+            self.restoreGeometry(geo)
+        else:
+            self.resize(680, 680)
+
+    def _save_settings(self) -> None:
+        settings = QSettings()
+        settings.setValue("main_window/geometry", self.saveGeometry())
+
+    def _center_dialog(self, dialog: QDialog) -> None:
+        """Center a dialog relative to this main window."""
+        dialog.adjustSize()
+        center = self.mapToGlobal(self.rect().center())
+        dialog.move(center.x() - dialog.width() // 2, center.y() - dialog.height() // 2)
+
+    def closeEvent(self, event) -> None:
+        self._save_settings()
+        super().closeEvent(event)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        # Debounced save — QTimer with 500ms delay
+        if not hasattr(self, '_resize_timer'):
+            self._resize_timer = QTimer(self)
+            self._resize_timer.setSingleShot(True)
+            self._resize_timer.setInterval(500)
+            self._resize_timer.timeout.connect(self._save_settings)
+        self._resize_timer.start()
+
+    def moveEvent(self, event) -> None:
+        super().moveEvent(event)
+        if not hasattr(self, '_move_timer'):
+            self._move_timer = QTimer(self)
+            self._move_timer.setSingleShot(True)
+            self._move_timer.setInterval(500)
+            self._move_timer.timeout.connect(self._save_settings)
+        self._move_timer.start()
+
     def _append_log(self, message: str) -> None:
+        if not self.log_group.isVisible():
+            self.log_group.setVisible(True)
         self.log_output.append(message)

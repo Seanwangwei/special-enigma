@@ -1,113 +1,112 @@
+"""Validation results dialog — shows column/email/duplicate errors with color-coded details."""
+
+from __future__ import annotations
+
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QScrollArea, QWidget
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QFrame,
 )
-from PySide6.QtCore import Qt
-from typing import Optional
 
 
 class ValidationResultsDialog(QDialog):
-    """Dialog showing validation errors and summary."""
+    """Dialog showing validation errors with a red warning card and two actions."""
 
-    def __init__(self, parent, validation_errors: dict):
-        """
-        Args:
-            parent: Parent widget
-            validation_errors: Dict with keys like 'missing_emails', 'duplicate_ids', 'invalid_templates'
-                               Values are lists of error details.
-        """
+    def __init__(self, parent, validation_errors: dict) -> None:
         super().__init__(parent)
         self.validation_errors = validation_errors
         self.setWindowTitle("Validation Results")
-        self.setGeometry(200, 200, 600, 500)
-        self.init_ui()
+        self.setMinimumSize(460, 380)
+        self._build_ui()
 
-    def init_ui(self):
-        layout = QVBoxLayout()
+    def _build_ui(self) -> None:
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(14)
 
-        # Summary section
-        summary_text = self._build_summary()
-        summary_label = QLabel(summary_text)
-        summary_label.setStyleSheet("font-weight: bold; color: #d32f2f;")
-        layout.addWidget(QLabel("Validation Errors:"))
-        layout.addWidget(summary_label)
+        # Title
+        title = QLabel("⚠ Validation Issues Found")
+        title.setStyleSheet("font-size: 16px; font-weight: 600; color: #1e293b; border: none; background: transparent;")
+        layout.addWidget(title)
 
-        layout.addSpacing(10)
+        # Error summary card (red)
+        error_count = self._count_errors()
+        error_card = QFrame()
+        error_card.setStyleSheet(
+            "QFrame { background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; }"
+        )
+        error_card_layout = QVBoxLayout(error_card)
+        error_card_layout.setContentsMargins(12, 12, 12, 12)
+        error_summary = QLabel(f"{error_count} validation issue(s) detected")
+        error_summary.setStyleSheet("font-weight: 600; color: #dc2626; font-size: 13px; border: none; background: transparent;")
+        error_hint = QLabel("The email cannot be generated correctly until these are resolved.")
+        error_hint.setStyleSheet("font-size: 11px; color: #dc2626; border: none; background: transparent;")
+        error_card_layout.addWidget(error_summary)
+        error_card_layout.addWidget(error_hint)
+        layout.addWidget(error_card)
 
-        # Detailed errors
-        layout.addWidget(QLabel("Details:"))
+        # Details section
+        details_label = QLabel("Details")
+        details_label.setStyleSheet("font-weight: 600; font-size: 13px; color: #1e293b; border: none; background: transparent;")
+        layout.addWidget(details_label)
+
         details_text = self._build_details()
         details_edit = QTextEdit()
-        details_edit.setPlainText(details_text)
+        details_edit.setHtml(details_text)
         details_edit.setReadOnly(True)
+        details_edit.setMinimumHeight(120)
+        details_edit.setStyleSheet(
+            "QTextEdit { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 12px; }"
+        )
         layout.addWidget(details_edit)
 
         # Buttons
         button_layout = QHBoxLayout()
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.reject)
         button_layout.addStretch()
-        button_layout.addWidget(close_btn)
+        continue_btn = QPushButton("Continue Anyway")
+        continue_btn.setProperty("cssClass", "ghost")
+        continue_btn.clicked.connect(self.accept)
+        fix_btn = QPushButton("Go Back && Fix")
+        fix_btn.setProperty("cssClass", "primary")
+        fix_btn.clicked.connect(self.reject)
+        button_layout.addWidget(continue_btn)
+        button_layout.addWidget(fix_btn)
         layout.addLayout(button_layout)
 
-        self.setLayout(layout)
-
-    def _build_summary(self) -> str:
-        """Build summary line like '4 students missing email, 2 duplicated IDs'."""
-        summary_parts = []
-
-        missing_emails = self.validation_errors.get("missing_emails", [])
-        if missing_emails:
-            summary_parts.append(f"{len(missing_emails)} students missing email")
-
-        duplicate_ids = self.validation_errors.get("duplicate_ids", [])
-        if duplicate_ids:
-            summary_parts.append(f"{len(duplicate_ids)} duplicated IDs")
-
-        invalid_templates = self.validation_errors.get("invalid_templates", [])
-        if invalid_templates:
-            summary_parts.append(f"{len(invalid_templates)} invalid template")
-
-        invalid_columns = self.validation_errors.get("invalid_columns", [])
-        if invalid_columns:
-            summary_parts.append(f"{len(invalid_columns)} invalid columns")
-
-        return ", ".join(summary_parts) if summary_parts else "No errors"
+    def _count_errors(self) -> int:
+        return sum(len(v) for v in self.validation_errors.values())
 
     def _build_details(self) -> str:
-        """Build detailed error list."""
-        lines = []
+        parts: list[str] = []
 
-        missing_emails = self.validation_errors.get("missing_emails", [])
-        if missing_emails:
-            lines.append(f"Missing Email ({len(missing_emails)}):")
-            for detail in missing_emails[:10]:  # Show first 10
-                lines.append(f"  - {detail}")
-            if len(missing_emails) > 10:
-                lines.append(f"  ... and {len(missing_emails) - 10} more")
-            lines.append("")
+        missing = self.validation_errors.get("missing_emails", [])
+        if missing:
+            parts.append(
+                '<p><span style="color:#dc2626;font-weight:600;">✗ Missing emails:</span> '
+                f'{", ".join(missing[:10])}'
+                f'{"..." if len(missing) > 10 else ""}</p>'
+            )
 
-        duplicate_ids = self.validation_errors.get("duplicate_ids", [])
-        if duplicate_ids:
-            lines.append(f"Duplicated IDs ({len(duplicate_ids)}):")
-            for detail in duplicate_ids[:10]:
-                lines.append(f"  - {detail}")
-            if len(duplicate_ids) > 10:
-                lines.append(f"  ... and {len(duplicate_ids) - 10} more")
-            lines.append("")
+        dupes = self.validation_errors.get("duplicate_ids", [])
+        if dupes:
+            parts.append(
+                '<p><span style="color:#d97706;font-weight:600;">⚠ Duplicate IDs:</span> '
+                f'{", ".join(dupes[:10])}'
+                f'{"..." if len(dupes) > 10 else ""}</p>'
+            )
 
-        invalid_templates = self.validation_errors.get("invalid_templates", [])
-        if invalid_templates:
-            lines.append(f"Invalid Template ({len(invalid_templates)}):")
-            for detail in invalid_templates[:10]:
-                lines.append(f"  - {detail}")
-            if len(invalid_templates) > 10:
-                lines.append(f"  ... and {len(invalid_templates) - 10} more")
-            lines.append("")
+        invalid_tmpl = self.validation_errors.get("invalid_templates", [])
+        if invalid_tmpl:
+            parts.append(
+                '<p><span style="color:#dc2626;font-weight:600;">✗ Invalid templates:</span> '
+                f'{", ".join(invalid_tmpl[:10])}</p>'
+            )
 
-        invalid_columns = self.validation_errors.get("invalid_columns", [])
-        if invalid_columns:
-            lines.append(f"Invalid Columns ({len(invalid_columns)}):")
-            for col in invalid_columns:
-                lines.append(f"  - {col}")
+        invalid_cols = self.validation_errors.get("invalid_columns", [])
+        if invalid_cols:
+            parts.append(
+                '<p><span style="color:#d97706;font-weight:600;">⚠ Invalid columns:</span> '
+                f'{", ".join(invalid_cols[:10])}</p>'
+            )
 
-        return "\n".join(lines) if lines else "No errors found"
+        if not parts:
+            return "<p>No errors found.</p>"
+        return "".join(parts)
