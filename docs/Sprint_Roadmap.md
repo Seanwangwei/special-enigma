@@ -2,9 +2,9 @@
 
 # Exam Result Email Automation
 
-Version: 0.5.0 (Dynamic Templates)
+Version: 0.5.0 (Dynamic Templates) | Sprint 6 Planned (UI/UX Design System)
 
-Last Updated: July 2026
+Last Updated: July 5, 2026
 
 ---
 
@@ -327,6 +327,325 @@ Completed Deliverables
 
 - ✅ 55 tests pass (27 existing + 17 docx parser + 11 integration)
 - ✅ Integration tests: parse → validate → render → send pipeline
+
+---
+
+# Sprint 6 — UI/UX Design System Implementation & Design QA
+
+Status: 📋 Planned
+
+Objective
+
+Implement the complete design system from `docs/design-mockup.html` and verify every screen matches the design specification through structured design review with side-by-side screenshot comparison.
+
+Design Source: `docs/design-mockup.html` (committed at 8031f82)
+
+---
+
+## Phase 1 — Design Token Infrastructure
+
+### 1.1 Create Theme Module
+
+File: `src/exam_email_automation/gui/theme.py`
+
+Define all design tokens as Python constants:
+- Color palette (12 colors: primary, success, warning, error, neutral scale)
+- Typography scale (5 sizes: xs/11px → 2xl/24px)
+- Spacing scale (8 steps: 4px → 32px)
+- Border radius scale (4 steps: 4px → 12px)
+- Shadow definitions (not applicable to QSS, but document for reference)
+
+```python
+# Example structure
+class Colors:
+    PRIMARY = "#2563eb"
+    PRIMARY_HOVER = "#1d4ed8"
+    SUCCESS = "#16a34a"
+    # ... etc
+
+class Fonts:
+    SANS = "Segoe UI, -apple-system, system-ui, sans-serif"
+    MONO = "Consolas, SF Mono, Cascadia Code, monospace"
+```
+
+### 1.2 Create App-Wide QSS Stylesheet
+
+File: `src/exam_email_automation/gui/styles.qss`
+
+Translate design tokens into QSS:
+- Global font family and default colors
+- QGroupBox → card style (white background, border, rounded corners)
+- QPushButton variants (primary, secondary, ghost, danger, success)
+- QLineEdit (normal, readonly, focus with blue glow)
+- QTextEdit / QTextBrowser (log area dark theme)
+- QProgressBar (rounded track, blue fill)
+- QLabel badges (via dynamic property selectors)
+- QRadioButton → card-style radio options
+- QTabWidget / QTabBar (tab styling)
+- QListWidget (preview student list)
+- QComboBox (dropdown)
+- Scrollbar styling
+- QStatusBar
+
+### 1.3 Apply Stylesheet at Startup
+
+Update `app.py`:
+- Load `styles.qss` from file
+- Apply via `app.setStyleSheet(qss_content)`
+- Set `QApplication.setOrganizationName("ExamEmailAutomation")` for QSettings
+- Set `QApplication.setApplicationName("Exam Email Automation")`
+- Set default font family
+
+---
+
+## Phase 2 — Component Implementation
+
+### 2.1 Button Variants
+
+Style all QPushButtons with semantic classes via `setProperty()` or object-name selectors:
+- Primary: blue background, white text (Preview, Send, Continue)
+- Secondary: white background, border (Browse, Copy to Clipboard)
+- Ghost: transparent, gray text (Clear, Back, Cancel)
+- Danger: red background (only when destructive)
+- Success: green background (only when affirmative)
+
+### 2.2 Badge Widget
+
+Create a reusable badge system:
+- Option A: `QLabel` subclass with dynamic property `data-badge="success|warning|error|info"`
+- Option B: Plain `QLabel` with inline stylesheet for each instance
+- Decision: Option A for reusability
+
+Use cases:
+- Template vars detected count
+- Student count in Excel card
+- Pass/Fail/EC counts
+- Status indicators in results
+
+### 2.3 Step Indicator Widget
+
+Create a wizard progress widget showing current step:
+- Reusable across Method/Mode/Confirm dialogs
+- Shows: Validate → Method → Mode → Confirm → Results
+- Active step: blue filled circle
+- Done step: green checkmark circle
+- Future step: gray outlined circle
+- Connector lines between steps
+
+### 2.4 Radio Option Cards
+
+Style QRadioButton as card-style selectable options:
+- Border on all sides, rounded corners
+- Selected state: blue border + light blue background
+- Hover: light gray background
+- Title + description text (use `\n` properly or separate labels)
+
+### 2.5 Log Panel Dark Theme
+
+Style the log QTextEdit:
+- Dark background (#0f172a)
+- Light monospace text (#e2e8f0)
+- Color-coded lines: green for success, red for errors
+- Timestamp in muted gray
+
+---
+
+## Phase 3 — Screen-by-Screen Implementation
+
+### 3.1 Main Window — Empty State
+
+Match mockup:
+- [ ] Remove hardcoded Courier font from ConfirmationDialog → use theme
+- [ ] Section cards with uppercase header labels + icons (use Unicode)
+- [ ] Browse/Clear button groups consistent across all three file sections
+- [ ] Actions section: buttons disabled until data loaded
+- [ ] Progress and Log sections hidden on startup, shown when active
+- [ ] Status bar: green dot + "Ready" message
+- [ ] Set minimum size 480×400, default 680×680
+- [ ] Window icon set (generate simple SVG icon or use Qt built-in)
+
+### 3.2 Main Window — Loaded State
+
+Match mockup:
+- [ ] Template card: shows filename + variable badges + Clear button
+- [ ] Excel card: shows filename + student count badge + Clear button
+- [ ] Variable badges displayed as wrap-row of small blue pills
+- [ ] Actions all enabled
+- [ ] Progress bar visible with percentage + "N / M" label
+- [ ] Log panel visible with timestamped, color-coded entries
+
+### 3.3 Preview Dialog
+
+Match mockup:
+- [ ] Split-pane layout: QListWidget (left, fixed width) + QTextBrowser (right, stretch)
+- [ ] Active student highlighted in blue
+- [ ] Email metadata header (To, Subject) above rendered HTML
+- [ ] Close button right-aligned
+
+### 3.4 Validation Results Dialog
+
+Match mockup:
+- [ ] Warning/error card at top (red background, red border)
+- [ ] Summary: "N column mismatches detected"
+- [ ] Details section with color-coded list (red = missing, amber = unused)
+- [ ] Two action buttons: "Continue Anyway" (ghost) + "Go Back & Fix" (primary)
+
+### 3.5 Delivery Method Dialog
+
+Match mockup:
+- [ ] Step indicator showing Step 1 active
+- [ ] Radio card: Outlook (with description)
+- [ ] Radio card: SMTP (with description)
+- [ ] Outlook account section (dropdown + label) — disabled when SMTP selected
+- [ ] Back (ghost, left) + Continue (primary, right)
+
+### 3.6 Delivery Mode Dialog
+
+Match mockup:
+- [ ] Step indicator showing Step 2 active
+- [ ] Three radio cards with emoji icons + titles + descriptions:
+  - 🔍 Preview Only
+  - 📝 Create Outlook Drafts (Default) — pre-selected
+  - 📨 Send Immediately
+- [ ] Back (ghost) + Continue (primary)
+
+### 3.7 Confirmation Dialog
+
+Match mockup:
+- [ ] Step indicator showing Step 3 active
+- [ ] Stats card: monospace, centered, with Unicode dividers
+- [ ] Student count + Pass/Fail/EC breakdown with color coding
+- [ ] Delivery info card (blue accent): Method + Mode
+- [ ] Back (ghost) + "📨 Process N Emails" (primary, large)
+
+### 3.8 Results Dialog
+
+Match mockup:
+- [ ] Success header: green circle checkmark + "Processing Complete" + sent/failed badges
+- [ ] QTabWidget: "All Records" + "Errors (N)"
+- [ ] Pipe-delimited log-style table in monospace font
+- [ ] "Copy to Clipboard" (secondary) + "Close" (primary)
+- [ ] Copy button shows "Copied!" feedback for 1.5s
+
+---
+
+## Phase 4 — UX Polish
+
+### 4.1 Dialog Centering
+
+- [ ] All dialogs center on parent window instead of hardcoded (200,200) positions
+- [ ] Replace `setGeometry()` calls with `self.move(parent.x() + (parent.width() - self.width()) // 2, parent.y() + ...)` or use Qt's built-in centering
+
+### 4.2 Keyboard Shortcuts
+
+- [ ] Enter/Return activates primary button in dialogs
+- [ ] Escape closes dialog (reject) — already works via Qt default
+- [ ] Ctrl+O → Browse Excel (if main window focused)
+- [ ] Ctrl+P → Preview Emails
+- [ ] Alt+letter mnemonics on key buttons (via `&` in text)
+
+### 4.3 Window Icon
+
+- [ ] Generate a simple SVG application icon (or use a Unicode character)
+- [ ] Set via `QApplication.setWindowIcon()`
+- [ ] Also set on individual dialogs via `setWindowIcon()`
+
+### 4.4 Loading States
+
+- [ ] Preview generation shows busy cursor or progress indicator
+- [ ] Send operation: progress bar updates in real-time
+- [ ] Status bar message updates during operations
+
+### 4.5 QSettings Persistence
+
+- [ ] Save/restore main window size and position
+- [ ] Save/restore last used directory for file dialogs
+- [ ] QSettings initialized in `app.py` with org/app name
+
+---
+
+## Phase 5 — Design Review & QA
+
+### 5.1 Screenshot Capture
+
+For each of the 8 screens, capture screenshots showing:
+1. **Empty/Main Window** — both empty and loaded states
+2. **Preview Dialog** — with a student selected
+3. **Validation Dialog** — with mismatches shown
+4. **Delivery Method Dialog** — Outlook selected
+5. **Delivery Mode Dialog** — Draft selected
+6. **Confirmation Dialog** — with stats populated
+7. **Results Dialog** — with sent + errors
+
+### 5.2 Side-by-Side Comparison
+
+Create a design conformance document at `docs/sprint6-design-review.html`:
+
+For each screen:
+- Left: design-mockup.html screenshot (reference)
+- Right: actual app screenshot (implementation)
+- Below: conformance checklist (colors, spacing, typography, layout)
+- Status: ✅ Match / ⚠ Minor Diff / ❌ Does Not Match
+
+### 5.3 Design Conformance Criteria
+
+Each screen assessed on:
+| Dimension | Check |
+|-----------|-------|
+| Colors | Do hex values match the design tokens? |
+| Typography | Font sizes, weights, families match? |
+| Spacing | Margins, padding, gaps match the 4px grid? |
+| Layout | Widget order and alignment match? |
+| States | Hover, focus, disabled, active states correct? |
+| Responsiveness | Window resize behavior acceptable? |
+
+### 5.4 Bug Remediation
+
+- [ ] Log all design discrepancies to UAT Bug Log
+- [ ] Fix each discrepancy
+- [ ] Re-capture screenshots
+- [ ] Re-compare until all screens pass
+
+---
+
+## Definition of Done for Sprint 6
+
+- [ ] `theme.py` and `styles.qss` created and loaded at startup
+- [ ] All 8 screens match their mockup counterparts
+- [ ] Badge widget reusable across the app
+- [ ] Step indicator widget shows correct wizard progress
+- [ ] Radio option cards styled as per mockup
+- [ ] Dark-themed log panel renders color-coded entries
+- [ ] All dialogs centered on parent window
+- [ ] Keyboard shortcuts functional (Enter/Esc minimum)
+- [ ] Window icon applied
+- [ ] QSettings persists window geometry
+- [ ] Design review document created with side-by-side screenshots
+- [ ] All discrepancies logged and fixed
+- [ ] All 55 existing tests still pass
+- [ ] No regressions in functionality
+
+---
+
+## Test Strategy for Sprint 6
+
+### Automated
+
+```bash
+python3 -m pytest -q  # Must remain 55+ passing
+```
+
+### Manual Design QA
+
+1. Launch app → compare main window (empty) against mockup
+2. Upload .docx template → compare variable badges against mockup
+3. Browse Excel → compare loaded state against mockup
+4. Click Preview → compare Preview dialog against mockup
+5. Trigger validation error → compare Validation dialog against mockup
+6. Click Send All → step through Method → Mode → Confirm dialogs
+7. Complete send → compare Results dialog against mockup
+8. Screenshot each screen, paste into `docs/sprint6-design-review.html`
+9. Mark conformance for each dimension
 
 ---
 
