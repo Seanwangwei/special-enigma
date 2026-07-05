@@ -11,14 +11,15 @@ A Windows desktop app (PySide6) for university Registrar Office staff to generat
 - **Version:** 0.7.0
 - **Tests:** 143 passing (`source .venv/bin/activate && python3 -m pytest -q`)
 - **Platform:** Windows target, macOS development (Python 3.12 venv)
-- **Branch:** main — Sprint 7 complete
+- **Branch:** main — synced with remote
+- **UAT:** Paused mid-testing (BUG-004 pending re-verification, BUG-005/006/007 fixed, Sprint 7 complete)
 
 ## Quick Commands
 
 ```bash
 source .venv/bin/activate       # Python 3.12 venv (REQUIRED — system Python 3.9 won't work)
-python3 -m pytest -q            # 120 tests in ~0.9s
-python3 app.py                  # Launch GUI
+./run.sh                        # Launch GUI (auto-fixes cocoa plugin if needed)
+python3 -m pytest -q            # 143 tests in ~1.5s
 ```
 
 ## Architecture
@@ -37,7 +38,9 @@ src/exam_email_automation/
 │                   smtp_sender.py      — SMTP via smtplib
 │                   delivery_mode.py    — PREVIEW_ONLY / CREATE_DRAFTS / SEND_IMMEDIATELY
 ├── excel/          excel_reader.py     — pandas .xlsx parser, student grouping, extra_fields
+│                                        (template_variables param, module-level extra_fields)
 ├── gui/            main_window.py      — QMainWindow, full wizard flow, template upload
+│                                        QLineEdit min widths (280px), window min (620×480)
 │                   theme.py            — design tokens (colors, fonts, spacing, radii)
 │                   styles.qss          — app-wide QSS stylesheet (537 lines)
 │                   icon.py             — SVG app icon
@@ -47,11 +50,13 @@ src/exam_email_automation/
 │                   results_dialog.py, dialogs.py
 ├── logging/        logger.py           — app logger + AuditLogger (timestamped .xlsx)
 ├── models/         student.py          — Student dataclass (+ extra_fields dict)
-│                   module_result.py    — ModuleResult frozen dataclass
+│                   module_result.py    — ModuleResult dataclass (+ extra_fields dict, get() method)
 ├── services/       preview_service.py  — HTML preview generation
 │                   send_service.py     — mode/provider dispatch, batch send
 ├── templates/      template_engine.py  — Jinja2 ChoiceLoader (DictLoader + FileSystemLoader)
+│                                        passes modules to context, generate_module_table(cols)
 │                   docx_parser.py      — parse .docx, extract {{variables}}, → HTML
+│                                        table detection, header analysis, dynamic Jinja2 rows
 │                   template_metadata.py— TemplateMeta, companion YAML
 │                   template1-3.html    — bundled HTML fallback templates
 └── validation/     validator.py        — dynamic column validation, MismatchReport
@@ -60,12 +65,14 @@ src/exam_email_automation/
 ### Key Design Decisions
 
 - **Template-first workflow (Sprint 5):** Staff upload Word .docx with `{{variables}}` → tool extracts vars → validates Excel columns against vars → renders HTML
+- **Dynamic table population (Sprint 7):** DOCX tables with bold headers → column mapping → Jinja2 `{% for %}` rows generated per student module
 - **Design system (Sprint 6):** Full QSS stylesheet + theme tokens for consistent UI across all 8 screens
 - **Outlook primary, SMTP fallback:** SendService dispatches based on config/provider selection
 - **Draft-by-default:** `create_drafts` is the default delivery mode to prevent accidental mass sends
 - **Layered architecture:** Business logic has zero GUI imports — all backend is testable without a display
 - **Per-student failure isolation:** One failed email doesn't stop the batch
-- **extra_fields on Student:** Any Excel column beyond the 12 known ones lands in `extra_fields` (keys normalized: lowercase, spaces→underscores)
+- **extra_fields on Student + ModuleResult:** Any Excel column beyond the known ones lands in `extra_fields` (keys normalized: lowercase, spaces→underscores)
+- **Flexible validation:** When a DOCX template is active, Excel validation uses template variables instead of hardcoded column list
 
 ## Current Workflow
 
@@ -96,20 +103,24 @@ Key: `delivery_mode`, `email_provider`, `templates_folder`, `smtp_*`
 | Fix Excel parsing | `excel/excel_reader.py` |
 | Change validation | `validation/validator.py` |
 | Modify email templates | `templates/template_engine.py` or upload .docx |
+| DOCX table behavior | `templates/docx_parser.py` — `_is_header_row`, `_build_data_table_html` |
+| Module data fields | `models/module_result.py` — `get()`, `extra_fields` |
 | GUI workflow changes | `gui/main_window.py` |
 | Delivery logic | `services/send_service.py` |
 | Add new dialog | `gui/` — follow existing pattern |
 | Change colors/fonts/spacing | `gui/theme.py` |
 | Change widget styling | `gui/styles.qss` |
 | Design conformance | `tests/test_design_conformance.py` (65 tests) |
+| Sprint 7 tests | `tests/test_sprint7_table_population.py` (23 tests) |
 
 ## Live Documentation
 
-- `docs/PRD.md` — Product Requirements Document
-- `docs/Sprint_Roadmap.md` — Sprint history (1-6 complete) + future phases
+- `docs/PRD.md` — Product Requirements Document (FR-4.1: Dynamic Table Population)
+- `docs/Sprint_Roadmap.md` — Sprint history (1–7 complete) + future phases
 - `docs/Project_Overview.md` — High-level project description
 - `docs/Architecture.md` — Technical architecture details
-- `docs/UAT_Bug_Log.md` — Bug tracking (3 bugs, all fixed)
+- `docs/UAT_Bug_Log.md` — Bug tracking (7 bugs: 1–3 fixed prior, 4–7 fixed this session)
+- `docs/UAT_Test_Cases.xlsx` — Structured UAT test cases (19 cases, 80 steps)
 - `docs/sprint6-design-review.html` — Side-by-side design QA (mockup vs. implementation)
 - `docs/design-mockup.html` — UI/UX design system mockup v1.0
 
@@ -118,6 +129,7 @@ Key: `delivery_mode`, `email_provider`, `templates_folder`, `smtp_*`
 - Backend tests use pytest with `tmp_path` fixtures
 - `test_docx_parser.py` — creates .docx in-memory with python-docx
 - `test_integration_docx.py` — full pipeline: parse → validate → render
+- `test_sprint7_table_population.py` — 23 tests: table detection, column mapping, dynamic rows, backward compat
 - `test_design_conformance.py` — 65 tests validating theme tokens, stylesheet rules, widget properties
 - Outlook tests mock `win32com.client` at module level
 - SMTP tests use `aiosmtpd` local server
@@ -128,7 +140,8 @@ PySide6, pandas, openpyxl, Jinja2, pywin32 (Windows only), PyYAML, pytest, aiosm
 
 ## Known Issues
 
-- Qt cocoa plugin requires `pip install --force-reinstall PySide6_Essentials` on macOS occasionally
+- macOS: `pkill` invalidates PySide6 cocoa dylib cache → use `./run.sh` which auto-reinstalls.  `app.py` also attempts auto-restore on launch.
 - PyInstaller spec needs `pywin32` hidden import added for Windows packaging
 - No GUI automation tests (pytest-qt) — design conformance tests cover token/stylesheet validation, manual UAT for visual QA
 - MUST use `.venv` Python 3.12 — system Python 3.9 lacks `str | None` syntax (PEP 604)
+- "Segoe UI" font warning on macOS is benign — falls back to system font per theme.py
