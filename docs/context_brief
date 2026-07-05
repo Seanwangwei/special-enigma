@@ -8,16 +8,16 @@ A Windows desktop app (PySide6) for university Registrar Office staff to generat
 
 ## Current State
 
-- **Version:** 0.5.0
-- **Tests:** 55 passing (`python3 -m pytest -q`)
-- **Platform:** Windows target, macOS development
+- **Version:** 0.6.0
+- **Tests:** 120 passing (`source .venv/bin/activate && python3 -m pytest -q`)
+- **Platform:** Windows target, macOS development (Python 3.12 venv)
 - **Branch:** main — working tree clean
 
 ## Quick Commands
 
 ```bash
-source .venv/bin/activate       # Python 3.12 venv
-python3 -m pytest -q            # 55 tests in ~0.6s
+source .venv/bin/activate       # Python 3.12 venv (REQUIRED — system Python 3.9 won't work)
+python3 -m pytest -q            # 120 tests in ~0.9s
 python3 app.py                  # Launch GUI
 ```
 
@@ -38,9 +38,13 @@ src/exam_email_automation/
 │                   delivery_mode.py    — PREVIEW_ONLY / CREATE_DRAFTS / SEND_IMMEDIATELY
 ├── excel/          excel_reader.py     — pandas .xlsx parser, student grouping, extra_fields
 ├── gui/            main_window.py      — QMainWindow, full wizard flow, template upload
+│                   theme.py            — design tokens (colors, fonts, spacing, radii)
+│                   styles.qss          — app-wide QSS stylesheet (537 lines)
+│                   icon.py             — SVG app icon
+│                   widgets.py          — SectionLabel, Badge, StepIndicator
 │                   validation_dialog.py, confirmation_dialog.py,
 │                   delivery_method_dialog.py, delivery_mode_dialog.py,
-│                   results_dialog.py, dialogs.py, widgets.py
+│                   results_dialog.py, dialogs.py
 ├── logging/        logger.py           — app logger + AuditLogger (timestamped .xlsx)
 ├── models/         student.py          — Student dataclass (+ extra_fields dict)
 │                   module_result.py    — ModuleResult frozen dataclass
@@ -56,6 +60,7 @@ src/exam_email_automation/
 ### Key Design Decisions
 
 - **Template-first workflow (Sprint 5):** Staff upload Word .docx with `{{variables}}` → tool extracts vars → validates Excel columns against vars → renders HTML
+- **Design system (Sprint 6):** Full QSS stylesheet + theme tokens for consistent UI across all 8 screens
 - **Outlook primary, SMTP fallback:** SendService dispatches based on config/provider selection
 - **Draft-by-default:** `create_drafts` is the default delivery mode to prevent accidental mass sends
 - **Layered architecture:** Business logic has zero GUI imports — all backend is testable without a display
@@ -65,10 +70,19 @@ src/exam_email_automation/
 ## Current Workflow
 
 ```
-Upload .docx Template (optional) → Browse Excel → Validate → Preview →
+Upload .docx Template → Browse Excel → Validate → Preview →
 Choose Delivery Method (Outlook/SMTP) → Choose Mode (Preview/Draft/Send) →
 Confirm → Send → Results → Audit Log
 ```
+
+## Sprint History
+
+| Sprint | Status |
+|--------|--------|
+| 1–3 | ✅ MVP — Core backend, email delivery, PySide6 GUI |
+| 4 | ✅ Production Readiness — wizard wiring, SMTP, docs, NaN guards |
+| 5 | ✅ Dynamic Templates — .docx upload, variable detection, dynamic validation |
+| 6 | ✅ UI/UX Design System — theme.py, styles.qss, 65 design conformance tests |
 
 ## Config (`config.yaml`)
 
@@ -84,20 +98,26 @@ Key: `delivery_mode`, `email_provider`, `templates_folder`, `smtp_*`
 | GUI workflow changes | `gui/main_window.py` |
 | Delivery logic | `services/send_service.py` |
 | Add new dialog | `gui/` — follow existing pattern |
+| Change colors/fonts/spacing | `gui/theme.py` |
+| Change widget styling | `gui/styles.qss` |
+| Design conformance | `tests/test_design_conformance.py` (65 tests) |
 
 ## Live Documentation
 
 - `docs/PRD.md` — Product Requirements Document
-- `docs/Sprint_Roadmap.md` — Sprint history (1-5 complete) + future phases
+- `docs/Sprint_Roadmap.md` — Sprint history (1-6 complete) + future phases
 - `docs/Project_Overview.md` — High-level project description
 - `docs/Architecture.md` — Technical architecture details
 - `docs/UAT_Bug_Log.md` — Bug tracking (3 bugs, all fixed)
+- `docs/sprint6-design-review.html` — Side-by-side design QA (mockup vs. implementation)
+- `docs/design-mockup.html` — UI/UX design system mockup v1.0
 
 ## Testing Patterns
 
 - Backend tests use pytest with `tmp_path` fixtures
 - `test_docx_parser.py` — creates .docx in-memory with python-docx
 - `test_integration_docx.py` — full pipeline: parse → validate → render
+- `test_design_conformance.py` — 65 tests validating theme tokens, stylesheet rules, widget properties
 - Outlook tests mock `win32com.client` at module level
 - SMTP tests use `aiosmtpd` local server
 
@@ -109,4 +129,5 @@ PySide6, pandas, openpyxl, Jinja2, pywin32 (Windows only), PyYAML, pytest, aiosm
 
 - Qt cocoa plugin requires `pip install --force-reinstall PySide6_Essentials` on macOS occasionally
 - PyInstaller spec needs `pywin32` hidden import added for Windows packaging
-- No GUI automation tests (pytest-qt) — manual UAT only
+- No GUI automation tests (pytest-qt) — design conformance tests cover token/stylesheet validation, manual UAT for visual QA
+- MUST use `.venv` Python 3.12 — system Python 3.9 lacks `str | None` syntax (PEP 604)
