@@ -1,0 +1,49 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller>=6.0
+
+      - name: Install Inno Setup 6
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build EXE (PyInstaller)
+        run: pyinstaller ExamEmailAutomation.spec --clean --noconfirm
+
+      - name: Build Installer (Inno Setup)
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ExamEmailAutomation.iss
+
+      - name: Upload standalone EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExamEmailAutomation-standalone
+          path: dist/ExamEmailAutomation/
+          retention-days: 30
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ExamEmailAutomation-Installer
+          path: dist/installer/ExamEmailAutomation-Setup-v1.0.0.exe
+          retention-days: 30
