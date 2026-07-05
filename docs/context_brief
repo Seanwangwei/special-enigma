@@ -12,7 +12,9 @@ A Windows desktop app (PySide6) for university Registrar Office staff to generat
 - **Tests:** 143 passing (`source .venv/bin/activate && python3 -m pytest -q`)
 - **Platform:** Windows target, macOS development (Python 3.12 venv)
 - **Branch:** main — synced with remote
-- **UAT:** BUG-001–007 fixed. Sprint 8 packaging artifacts ready for Windows testing.
+- **UAT:** BUG-001–007 fixed.
+- **CI/CD:** GitHub Actions builds Windows EXE + installer on every push to main (`.github/workflows/build-windows.yml`)
+- **macOS build:** PyInstaller standalone App bundle verified working (254MB, Mach-O arm64)
 
 ## Quick Commands
 
@@ -20,6 +22,7 @@ A Windows desktop app (PySide6) for university Registrar Office staff to generat
 source .venv/bin/activate       # Python 3.12 venv (REQUIRED — system Python 3.9 won't work)
 ./run.sh                        # Launch GUI (auto-fixes cocoa plugin if needed)
 python3 -m pytest -q            # 143 tests in ~1.5s
+./scripts/build_exe.sh          # macOS PyInstaller build (verified working)
 ```
 
 ## Architecture
@@ -97,6 +100,18 @@ Confirm → Send → Results → Audit Log
 
 Key: `delivery_mode`, `email_provider`, `templates_folder`, `smtp_*`
 
+## CI/CD (Windows Builds)
+
+Windows EXE and installer are built automatically via GitHub Actions on every push to `main`.
+Workflow: `.github/workflows/build-windows.yml`
+
+- **Runner:** `windows-latest`
+- **Steps:** Checkout → Python 3.12 → pip install → Inno Setup 6 (Chocolatey) → PyInstaller → Inno Setup compile
+- **Artifacts:** `ExamEmailAutomation-standalone` (folder) + `ExamEmailAutomation-Installer` (Setup.exe)
+- **Retention:** 30 days per artifact
+- **Manual trigger:** `workflow_dispatch` from the Actions tab
+- **Status:** <https://github.com/Seanwangwei/special-enigma/actions>
+
 ## Key Files for Common Tasks
 
 | Task | File(s) |
@@ -113,6 +128,9 @@ Key: `delivery_mode`, `email_provider`, `templates_folder`, `smtp_*`
 | Change widget styling | `gui/styles.qss` |
 | Design conformance | `tests/test_design_conformance.py` (65 tests) |
 | Sprint 7 tests | `tests/test_sprint7_table_population.py` (23 tests) |
+| Windows CI/CD build | `.github/workflows/build-windows.yml` |
+| PyInstaller spec | `ExamEmailAutomation.spec` |
+| Windows installer config | `installer/ExamEmailAutomation.iss` |
 
 ## Live Documentation
 

@@ -81,6 +81,12 @@ use_default_outlook: true
 
 ## Packaging for Windows
 
+### CI/CD (automatic)
+
+Windows builds run automatically on every push to `main` via GitHub Actions. Download the latest artifacts from the [Actions tab](https://github.com/Seanwangwei/special-enigma/actions).
+
+You can also trigger a build manually via `workflow_dispatch`.
+
 ### Prerequisites (on a Windows machine)
 
 - Python 3.12+

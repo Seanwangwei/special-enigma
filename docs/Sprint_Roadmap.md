@@ -4,7 +4,7 @@
 
 Version: 1.0.0 (Sprint 8 Complete — Production Packaging & Distribution)
 
-Last Updated: July 5, 2026
+Last Updated: July 6, 2026
 
 ---
 
@@ -940,13 +940,13 @@ Help → About
 - [ ] Application installs using Setup.exe *(Windows QA — W2, W3)*
 - [ ] No Python installation required *(Windows QA — W7)*
 - [ ] Desktop shortcut created *(Windows QA — W4)*
-- [ ] Application launches successfully *(macOS QA — M9)*
+- [x] Application launches successfully *(macOS QA — M9)* — PyInstaller App bundle verified (254MB, Mach-O arm64)
 - [ ] Preview, Logs, and Attachment folders created automatically
 - [ ] Uninstaller available in Windows *(Windows QA — W5, W16)*
 - [ ] Application icon displayed correctly *(Windows QA — W15)*
 - [ ] Version information visible *(macOS QA — M3, M4)*
 
-> **Note:** All code complete. macOS QA 11/18 pass. Windows QA requires a Windows machine.
+> **Note:** All code complete. macOS PyInstaller build verified working (app launched successfully). Windows QA requires a Windows machine — CI/CD pipeline automates Windows builds via GitHub Actions; download artifacts from the [Actions tab](https://github.com/Seanwangwei/special-enigma/actions).
 
 ---
 
@@ -957,6 +957,7 @@ Help → About
 - ✅ Application Icon — `resources/icon.ico` (multi-res), `resources/icon.png` (256px)
 - ✅ Version Metadata — `__version__ = "1.0.0"` + `version.py`
 - ✅ Installation Guide — README "Packaging for Windows" section
+- ✅ CI/CD Pipeline — GitHub Actions workflow (`.github/workflows/build-windows.yml`) builds Windows EXE + installer on push
 
 ---
 
