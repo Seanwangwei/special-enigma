@@ -27,20 +27,47 @@ class ExcelReader:
         self.logger = configure_logging(Path.cwd() / "logs")
         self.validator = Validator()
 
-    def load_students(self, path: Path) -> list[Student]:
+    def load_students(self, path: Path, template_variables: list[str] | None = None) -> list[Student]:
         path = Path(path)
         self.validator.validate_file_exists(path)
 
         dataframe = pd.read_excel(path, engine="openpyxl")
-        missing_columns = self.validator.validate_columns(dataframe.columns)
+
+        # When template variables are provided, validate against them instead of
+        # the hardcoded REQUIRED_COLUMNS list.  This lets the Excel have any
+        # columns matching the user's own .docx template.
+        missing_columns = self.validator.validate_columns(
+            dataframe.columns,
+            template_variables=template_variables,
+        )
         if missing_columns:
             raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
 
         normalized = self._normalize_columns(dataframe.columns)
         dataframe = dataframe.rename(columns=normalized)
 
+        # Determine the grouping column — prefer "student id" after normalisation,
+        # but fall back to any column whose normalised name ends with "student_id".
+        group_col = "student id"
+        if group_col not in dataframe.columns and template_variables:
+            for var in template_variables:
+                from exam_email_automation.templates.docx_parser import normalize_variable_name
+                if normalize_variable_name(var) in ("student_id", "studentid"):
+                    # Find the matching column in the dataframe
+                    for col in dataframe.columns:
+                        if normalize_variable_name(str(col)) == normalize_variable_name(var):
+                            group_col = col
+                            break
+                    break
+
+        if group_col not in dataframe.columns:
+            raise ValueError(
+                f"Cannot group students — no 'student id' column found. "
+                f"Available columns: {', '.join(str(c) for c in dataframe.columns)}"
+            )
+
         students: list[Student] = []
-        grouped = dataframe.groupby("student id", sort=False)
+        grouped = dataframe.groupby(group_col, sort=False)
 
         for student_id, group in grouped:
             student = self._build_student(student_id, group)
@@ -59,15 +86,24 @@ class ExcelReader:
 
     def _build_student(self, student_id: str, rows: pd.DataFrame) -> Student:
         first_row = rows.iloc[0]
-        # Capture columns beyond the known set as extra_fields
+        # Capture columns beyond the known set as extra_fields.
+        # Collect values from ALL rows (not just first_row) so that
+        # module-level columns like "Module Name" aggregate across
+        # multiple rows for the same student (BUG-007).
         extra_fields: dict[str, str] = {}
         for col in rows.columns:
             norm_col = str(col).strip().lower()
             if norm_col not in self.KNOWN_COLUMNS:
                 key = normalize_variable_name(str(col))
-                value = _safe_str(first_row.get(col, ""))
-                if key:  # skip empty keys
-                    extra_fields[key] = value
+                values: list[str] = []
+                seen: set[str] = set()
+                for _, row in rows.iterrows():
+                    val = _safe_str(row.get(col, ""))
+                    if val and val not in seen:
+                        values.append(val)
+                        seen.add(val)
+                if key and values:
+                    extra_fields[key] = ", ".join(values)
 
         student = Student(
             student_id=_safe_str(student_id),
@@ -81,13 +117,30 @@ class ExcelReader:
             extra_fields=extra_fields,
         )
 
+        # Known module-level column names (normalised)
+        _MODULE_COLS = {
+            "module code", "module name", "assessment format in august",
+            "attempt", "pass credits",
+        }
+
         for _, row in rows.iterrows():
+            # Collect extra module-level fields (beyond the 5 known ones)
+            mod_extra: dict[str, str] = {}
+            for col in rows.columns:
+                norm_col = str(col).strip().lower()
+                if norm_col not in self.KNOWN_COLUMNS and norm_col not in _MODULE_COLS:
+                    key = normalize_variable_name(str(col))
+                    val = _safe_str(row.get(col, ""))
+                    if key and val:
+                        mod_extra[key] = val
+
             module = ModuleResult(
                 module_code=_safe_str(row.get("module code", "")),
                 module_name=_safe_str(row.get("module name", "")),
                 assessment_format=_safe_str(row.get("assessment format in august", "")),
                 attempt=_safe_str(row.get("attempt", "")),
                 pass_credits=_safe_str(row.get("pass credits", "")),
+                extra_fields=mod_extra,
             )
             student.modules.append(module)
 

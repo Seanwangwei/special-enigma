@@ -77,9 +77,11 @@
 
 ### `templates/` — HTML Templates
 
-- `TemplateEngine` wraps Jinja2 with a `FileSystemLoader`. Templates are resolved by name from the `Email Template` column in the spreadsheet.
+- `TemplateEngine` wraps Jinja2 with a `ChoiceLoader` (DictLoader for uploaded DOCX + FileSystemLoader for bundled HTML).
 - Three templates are bundled: `template1.html` (progression), `template2.html` (reassessment), `template3.html` (extenuating circumstances).
-- `generate_module_table()` builds an HTML `<table>` of module results for insertion into templates.
+- `docx_parser.py` — `parse_and_convert()` extracts `{{variables}}` from .docx paragraphs and tables, converts to HTML, and normalises variable names for Jinja2 compatibility.
+- `generate_module_table()` builds an HTML `<table>` of module results for insertion into templates. In Sprint 7, accepts optional column definitions from DOCX table headers.
+- **Sprint 7:** DOCX tables with bold header rows detected as data tables. Empty rows replaced with Jinja2 `{% for module in modules %}` loops. Column mapping derived from header text → Excel fields. `ModuleResult.get()` and `ModuleResult.extra_fields` support custom columns. `TableMapping` dataclass stores column definitions per template.
 
 ### `validation/` — Data Validation
 

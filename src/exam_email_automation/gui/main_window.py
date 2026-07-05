@@ -126,6 +126,7 @@ class MainWindow(QMainWindow):
         template_row = QHBoxLayout()
         self.template_path_input = QLineEdit()
         self.template_path_input.setReadOnly(True)
+        self.template_path_input.setMinimumWidth(280)
         self.template_path_input.setPlaceholderText("Upload a Word template with {{variables}}...")
         upload_template_button = QPushButton("Browse…")
         upload_template_button.setProperty("cssClass", "secondary")
@@ -152,6 +153,7 @@ class MainWindow(QMainWindow):
         file_layout = QHBoxLayout(file_group)
         self.file_path_input = QLineEdit()
         self.file_path_input.setReadOnly(True)
+        self.file_path_input.setMinimumWidth(280)
         self.file_path_input.setPlaceholderText("Browse for student results spreadsheet (.xlsx)...")
         browse_excel_button = QPushButton("Browse…")
         browse_excel_button.setProperty("cssClass", "secondary")
@@ -168,6 +170,7 @@ class MainWindow(QMainWindow):
         attachment_layout = QHBoxLayout(attachment_group)
         self.attachment_path_input = QLineEdit()
         self.attachment_path_input.setReadOnly(True)
+        self.attachment_path_input.setMinimumWidth(280)
         self.attachment_path_input.setPlaceholderText("No file selected")
         browse_attachment_button = QPushButton("Browse…")
         browse_attachment_button.setProperty("cssClass", "secondary")
@@ -214,6 +217,7 @@ class MainWindow(QMainWindow):
         log_layout = QVBoxLayout(self.log_group)
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
+        self.log_output.setMinimumHeight(100)
         self.log_output.setProperty("cssClass", "log")
         log_layout.addWidget(self.log_output)
         self.log_group.setVisible(False)
@@ -232,7 +236,7 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(container)
         self.resize(680, 680)
-        self.setMinimumSize(480, 400)
+        self.setMinimumSize(620, 480)
 
     def _clear_excel(self) -> None:
         """Clear the loaded Excel file and reset related state."""
@@ -297,15 +301,19 @@ class MainWindow(QMainWindow):
 
         # If no subject in YAML, prompt the user
         if not subject:
-            subject, ok = QInputDialog.getText(
-                self, "Email Subject",
-                "Enter the email subject line for this template:",
-                text="Exam Results Notification"
-            )
-            if not ok or not subject.strip():
+            dialog = QInputDialog(self)
+            dialog.setWindowTitle("Email Subject")
+            dialog.setLabelText("Enter the email subject line for this template:")
+            dialog.setTextValue("Exam Results Notification")
+            dialog.setInputMode(QInputDialog.TextInput)
+            dialog.resize(520, dialog.height())
+            dialog.setMinimumWidth(480)
+            ok = dialog.exec() == QInputDialog.DialogCode.Accepted
+            if ok:
+                subject = dialog.textValue().strip()
+            if not ok or not subject:
                 ErrorDialog.show_error(self, "Subject Required", "A subject line is required to use the template.")
                 return
-            subject = subject.strip()
 
         # Store the old template info for cleanup
         old_meta = self.template_meta
@@ -414,7 +422,9 @@ class MainWindow(QMainWindow):
                 return
 
         try:
-            self.students = self.excel_reader.load_students(path)
+            self.students = self.excel_reader.load_students(path, template_variables=(
+                self.template_meta.variables if self.template_meta is not None and self.template_meta.variables else None
+            ))
         except Exception as exc:
             self._append_log(str(exc))
             ErrorDialog.show_error(self, "Load Error", str(exc))
@@ -446,6 +456,7 @@ class MainWindow(QMainWindow):
         msg = QMessageBox(self)
         msg.setWindowTitle("Column Mismatch")
         msg.setIcon(QMessageBox.Warning)
+        msg.setMinimumWidth(520)
 
         lines = ["The uploaded template's variables do not match the Excel file columns.\n"]
         if report.missing_in_excel:

@@ -195,8 +195,47 @@ For every student, the application shall generate:
 - Subject
 - Recipient
 - HTML body
-- Module table
+- Module table (auto-generated or from DOCX table definition — see FR-4.1)
 - Personalised greeting
+
+---
+
+## FR-4.1 Dynamic Table Population (Sprint 7)
+
+When a DOCX template contains a table, the application shall treat the table as a data template and populate it with student module data from the Excel spreadsheet.
+
+### Table Header Detection
+
+The application shall automatically detect the first row of a DOCX table as the **header row**. Header row cells contain column names that map to Excel columns (by normalized, case-insensitive name matching).
+
+### Data Row Generation
+
+For each module row belonging to a student in the Excel file, the application shall generate a corresponding table data row. Values from Excel columns are placed under the matching table header column.
+
+**Example:**
+
+DOCX table header: `| Module Code | Module Name | Credits | Semester | Module Type |`
+
+Student Wang Wei has 2 modules in Excel → 2 data rows generated:
+
+```
+| 32          | I love you  |         |          |             |
+| 12          | I hate you  |         |          |             |
+```
+
+### Unmapped Columns
+
+If a table header column has no matching Excel column, the cell is left empty. The table structure and styling defined in the DOCX are preserved.
+
+### Module Identification
+
+Module-level rows are identified by columns whose values change across rows for the same Student ID. Student-level columns (same value across all rows for a student — e.g., First Name, Surname) are available as inline `{{variables}}` in the surrounding paragraphs.
+
+### Backward Compatibility
+
+- The existing `{{module_table}}` special variable continues to work with its default 4-column output.
+- Templates without tables behave exactly as before.
+- The feature is additive — no existing template behaviour is changed.
 
 ---
 

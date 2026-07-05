@@ -8,10 +8,10 @@ A Windows desktop app (PySide6) for university Registrar Office staff to generat
 
 ## Current State
 
-- **Version:** 0.6.0
-- **Tests:** 120 passing (`source .venv/bin/activate && python3 -m pytest -q`)
+- **Version:** 0.7.0
+- **Tests:** 143 passing (`source .venv/bin/activate && python3 -m pytest -q`)
 - **Platform:** Windows target, macOS development (Python 3.12 venv)
-- **Branch:** main — working tree clean
+- **Branch:** main — Sprint 7 complete
 
 ## Quick Commands
 
@@ -83,6 +83,7 @@ Confirm → Send → Results → Audit Log
 | 4 | ✅ Production Readiness — wizard wiring, SMTP, docs, NaN guards |
 | 5 | ✅ Dynamic Templates — .docx upload, variable detection, dynamic validation |
 | 6 | ✅ UI/UX Design System — theme.py, styles.qss, 65 design conformance tests |
+| 7 | ✅ Dynamic DOCX Table Population — table header detection, dynamic rows, module extra_fields, 23 new tests |
 
 ## Config (`config.yaml`)
 

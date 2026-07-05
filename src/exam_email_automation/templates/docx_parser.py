@@ -19,8 +19,9 @@ SPECIAL_VARIABLES: set[str] = {
     "current_date",
 }
 
-# Pattern to match {{variable_name}} in template text
-VARIABLE_PATTERN = re.compile(r"\{\{(\w+)\}\}")
+# Pattern to match {{variable_name}} in template text.
+# Allows spaces in variable names (e.g. {{First Name}}, {{Student ID}}).
+VARIABLE_PATTERN = re.compile(r"\{\{([\w\s]+)\}\}")
 
 
 def normalize_variable_name(name: str) -> str:
@@ -33,6 +34,20 @@ def normalize_variable_name(name: str) -> str:
 
 
 @dataclass
+class TableMapping:
+    """Column definitions extracted from a DOCX table header row.
+
+    Attributes:
+        columns: Normalised column names extracted from header cells.
+        has_data_table: True if the DOCX contains at least one table with a
+                        detectable header row (bold first row).
+    """
+
+    columns: list[str] = field(default_factory=list)
+    has_data_table: bool = False
+
+
+@dataclass
 class TemplateInfo:
     """Result of parsing a .docx template file.
 
@@ -40,12 +55,15 @@ class TemplateInfo:
         html_content: The document converted to HTML with {{variables}} preserved.
         simple_variables: Variable names that map to Excel columns.
         special_variables: Variable names that are programmatically generated.
+        table_mapping: If the DOCX contains a data table, the column definitions
+                       extracted from its header row.
         all_variables: All variable names found (simple + special).
     """
 
     html_content: str
     simple_variables: list[str] = field(default_factory=list)
     special_variables: list[str] = field(default_factory=list)
+    table_mapping: TableMapping | None = None
 
     @property
     def all_variables(self) -> list[str]:
@@ -53,8 +71,9 @@ class TemplateInfo:
 
 
 def _extract_variables_from_text(text: str) -> list[str]:
-    """Return all unique {{variable}} names found in text."""
-    return list(dict.fromkeys(VARIABLE_PATTERN.findall(text)))
+    """Return all unique {{variable}} names found in text, stripped of whitespace."""
+    raw = VARIABLE_PATTERN.findall(text)
+    return list(dict.fromkeys(v.strip() for v in raw))
 
 
 def _classify_variables(variable_names: list[str]) -> tuple[list[str], list[str]]:
@@ -62,14 +81,17 @@ def _classify_variables(variable_names: list[str]) -> tuple[list[str], list[str]
 
     Simple variables map to Excel columns.
     Special variables are generated programmatically (e.g., module_table).
+    Variable names are normalised before classification so that spaced
+    variants like ``{{Module Table}}`` still match the reserved set.
     """
     simple = []
     special = []
     for name in variable_names:
-        if name in SPECIAL_VARIABLES:
-            special.append(name)
+        normalized = normalize_variable_name(name)
+        if normalized in SPECIAL_VARIABLES:
+            special.append(normalized)
         else:
-            simple.append(name)
+            simple.append(normalized)
     return simple, special
 
 
@@ -91,6 +113,102 @@ def _run_to_html(run) -> str:
     return text
 
 
+def _normalize_placeholders(html: str) -> str:
+    """Replace {{Variable Name}} with {{variable_name}} in HTML so Jinja2 can render.
+
+    Jinja2 identifiers cannot contain spaces.  This rewrites every {{…}}
+    placeholder by normalising the inner variable name (lowercase, spaces→underscores).
+    """
+    def _replace(match: re.Match[str]) -> str:
+        inner = match.group(1).strip()
+        return "{{" + normalize_variable_name(inner) + "}}"
+    return VARIABLE_PATTERN.sub(_replace, html)
+
+
+def _is_header_row(row) -> bool:
+    """Return True if *all* non-empty cells in the row are bold.
+
+    A header row is detected when every cell that contains text has at least
+    one bold run.  Empty cells are ignored for this check.
+    """
+    has_text = False
+    for cell in row.cells:
+        cell_text = cell.text.strip()
+        if not cell_text:
+            continue
+        has_text = True
+        # Check if any paragraph in the cell has a bold run
+        any_bold = any(
+            run.bold
+            for para in cell.paragraphs
+            for run in para.runs
+            if run.text.strip()
+        )
+        if not any_bold:
+            return False
+    return has_text  # at least one non-empty cell AND all non-empty cells bold
+
+
+def _extract_header_columns(table) -> list[str]:
+    """Return normalised column names from the first row of a table.
+
+    Only called when ``_is_header_row(table.rows[0])`` is True.
+    """
+    columns: list[str] = []
+    for cell in table.rows[0].cells:
+        raw = cell.text.strip()
+        if raw:
+            columns.append(normalize_variable_name(raw))
+        else:
+            columns.append("")  # preserve column position for empty headers
+    return columns
+
+
+def _build_data_table_html(table, header_columns: list[str]) -> tuple[str, list[str]]:
+    """Convert a DOCX table to HTML with Jinja2 ``{% for %}`` data rows.
+
+    The header row is kept as static HTML.  All subsequent rows are replaced
+    with a single Jinja2 loop that iterates ``modules`` and calls
+    ``module.get(column_name, '')`` for each header column.
+
+    Returns:
+        (html_string, list_of_variables_found)
+    """
+    vars_found: list[str] = []
+    rows_html: list[str] = []
+
+    # Header row — keep as static HTML
+    header_cells: list[str] = []
+    for cell in table.rows[0].cells:
+        parts: list[str] = []
+        for para in cell.paragraphs:
+            for run in para.runs:
+                if run.text:
+                    vars_found.extend(_extract_variables_from_text(run.text))
+                    parts.append(_run_to_html(run))
+        header_cells.append("<th>" + "".join(parts) + "</th>")
+    rows_html.append("<tr>" + "".join(header_cells) + "</tr>")
+
+    # Data rows — Jinja2 for loop
+    data_cells: list[str] = []
+    for col_name in header_columns:
+        if col_name:
+            data_cells.append(
+                "<td>{{ module.get('" + col_name + "', '') }}</td>"
+            )
+        else:
+            data_cells.append("<td></td>")
+
+    rows_html.append(
+        "{% for module in modules %}<tr>"
+        + "".join(data_cells)
+        + "</tr>{% endfor %}"
+    )
+
+    html = '<table border="1" cellpadding="6">' + "".join(rows_html) + "</table>"
+    return (html, vars_found)
+
+
 def parse_and_convert(docx_path: Path) -> TemplateInfo:
     """Parse a .docx file, extract variables, and convert content to HTML.
 
@@ -110,6 +228,7 @@ def parse_and_convert(docx_path: Path) -> TemplateInfo:
     doc = Document(str(docx_path))
     all_vars: list[str] = []
     html_parts: list[str] = []
+    table_mapping: TableMapping | None = None
 
     for element in doc.element.body:
         tag = element.tag.split("}")[-1] if "}" in element.tag else element.tag
@@ -124,20 +243,39 @@ def parse_and_convert(docx_path: Path) -> TemplateInfo:
 
         elif tag == "tbl":
             table = _find_table(doc, element)
-            if table is not None:
+            if table is None:
+                continue
+
+            # Detect data tables: first row bold → header → dynamic rows
+            if len(table.rows) >= 2 and _is_header_row(table.rows[0]):
+                header_columns = _extract_header_columns(table)
+                table_html, table_vars = _build_data_table_html(table, header_columns)
+                if table_mapping is None:
+                    table_mapping = TableMapping(
+                        columns=header_columns,
+                        has_data_table=True,
+                    )
+            else:
                 table_html, table_vars = _table_to_html(table)
-                if table_html.strip():
-                    html_parts.append(table_html)
-                    all_vars.extend(table_vars)
+
+            if table_html.strip():
+                html_parts.append(table_html)
+                all_vars.extend(table_vars)
 
     if not html_parts:
         html_parts.append("<p></p>")
 
+    raw_html = "\n".join(html_parts)
+    # Normalize {{variable names with spaces}} → {{variable_names_with_underscores}}
+    # so Jinja2 can render them (Jinja2 identifiers cannot contain spaces).
+    html_content = _normalize_placeholders(raw_html)
+
     simple, special = _classify_variables(list(dict.fromkeys(all_vars)))
     return TemplateInfo(
-        html_content="\n".join(html_parts),
+        html_content=html_content,
         simple_variables=simple,
         special_variables=special,
+        table_mapping=table_mapping,
     )
 
 
@@ -212,6 +350,7 @@ def extract_variables(docx_path: Path) -> TemplateInfo:
     """Extract variables from a .docx file without full HTML conversion.
 
     Faster than parse_and_convert; used when only variable names are needed.
+    Also detects data tables and extracts column mappings.
 
     Args:
         docx_path: Path to the .docx template file.
@@ -223,11 +362,20 @@ def extract_variables(docx_path: Path) -> TemplateInfo:
 
     doc = Document(str(docx_path))
     all_vars: list[str] = []
+    table_mapping: TableMapping | None = None
 
     for para in doc.paragraphs:
         all_vars.extend(_extract_variables_from_text(para.text))
 
     for table in doc.tables:
+        # Detect data table header
+        if len(table.rows) >= 2 and _is_header_row(table.rows[0]):
+            header_columns = _extract_header_columns(table)
+            if table_mapping is None:
+                table_mapping = TableMapping(
+                    columns=header_columns,
+                    has_data_table=True,
+                )
         for row in table.rows:
             for cell in row.cells:
                 for para in cell.paragraphs:
@@ -238,4 +386,5 @@ def extract_variables(docx_path: Path) -> TemplateInfo:
         html_content="",
         simple_variables=simple,
         special_variables=special,
+        table_mapping=table_mapping,
     )

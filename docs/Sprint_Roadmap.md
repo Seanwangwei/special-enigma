@@ -649,6 +649,155 @@ python3 -m pytest -q  # Must remain 55+ passing
 
 ---
 
+# Sprint 7 — Dynamic DOCX Table Population
+
+Status: ✅ Completed
+
+Objective
+
+Enable DOCX email templates to contain custom tables whose rows are automatically populated from Excel module data per student, instead of requiring `{{module_table}}` with hardcoded columns.
+
+Design Source: Real user scenario — Registrar Office templates contain bespoke module tables with office-specific columns.
+
+---
+
+## Phase 1 — Table Detection & Header Analysis
+
+### 1.1 Detect Tables in DOCX
+
+File: `docx_parser.py`
+
+Extend `parse_and_convert()` to classify each table found in the DOCX:
+- **Data table**: Has a first row with bold text (header row) + subsequent rows (empty or with placeholders).
+- **Static table**: All rows are static content — leave as-is.
+
+### 1.2 Extract Column Mapping
+
+For each data table:
+- Read header row cell text → normalize to match Excel columns / ModuleResult fields.
+- Build a mapping: `{header_text: field_name}` for each column.
+- Example: `"Module Code"` → `"module_code"`, `"Module Name"` → `"module_name"`, `"Credits"` → `"credits"`.
+
+### 1.3 Identify Unmapped Columns
+
+Table headers that don't match any Excel column are tracked as "unmapped". These cells will render empty in generated rows. No error — blank cells are allowed.
+
+---
+
+## Phase 2 — Dynamic Row Generation
+
+### 2.1 Replace Empty Rows with Jinja2 Loop
+
+Instead of converting empty table rows to static `<tr><td></td>...</tr>` HTML, generate a Jinja2 `{% for %}` block:
+
+```html
+{% for module in student.modules %}
+<tr>
+  <td>{{ module.module_code }}</td>
+  <td>{{ module.module_name }}</td>
+  <td>{{ module.get('credits', '') }}</td>
+  ...
+</tr>
+{% endfor %}
+```
+
+### 2.2 Update ModuleResult Model
+
+File: `models/module_result.py`
+
+Add an `extra_fields` dict to `ModuleResult` (mirroring `Student.extra_fields`) so that any Excel column beyond the 5 known module fields is accessible in table row templates.
+
+### 2.3 Update ExcelReader
+
+File: `excel_reader.py`
+
+When building `ModuleResult` objects, capture columns beyond the 5 known module columns into `ModuleResult.extra_fields` using the same all-rows dedup logic from BUG-007.
+
+### 2.4 Enhance `generate_module_table()`
+
+File: `template_engine.py`
+
+`generate_module_table()` currently hardcodes 4 columns. Update to accept an optional `columns: list[str] | None` parameter. When provided, generates only those columns. When `None`, uses the default 4-column output.
+
+---
+
+## Phase 3 — Template Rendering Integration
+
+### 3.1 Wire Table Detection into Template Engine
+
+When `parse_and_convert()` detects a data table, store the column mapping in `TemplateInfo`. The `TemplateEngine.render()` method uses this mapping to pass the right columns to `generate_module_table()`.
+
+### 3.2 Handle Mixed Templates
+
+A single DOCX may have:
+- Inline `{{variables}}` in paragraphs → existing behaviour
+- A data table → dynamic rows
+- Static tables (no header row detected) → existing behaviour
+
+All three must coexist in one template.
+
+---
+
+## Phase 4 — Testing & Verification
+
+### 4.1 Unit Tests
+
+- DOCX table header detection (bold row → header)
+- Column name normalization and matching
+- Empty DOCX tables (no data rows)
+- Tables with no matching Excel columns
+- Multiple tables in one DOCX
+- Mixed inline variables + data tables
+
+### 4.2 Integration Tests
+
+- Full pipeline: .docx with table → parse → Excel load → render → verify HTML contains correct number of data rows
+- Student with 0 modules (edge case — table should show "No module results")
+- Student with 5 modules (many rows)
+
+### 4.3 Backward Compatibility
+
+- Existing `{{module_table}}` templates unchanged
+- Existing non-table DOCX templates unchanged
+- All 120 existing tests must still pass
+
+---
+
+## Definition of Done for Sprint 7
+
+- [ ] DOCX tables with bold header rows are detected as data tables
+- [ ] Column mapping built from header text → Excel fields
+- [ ] Empty table rows replaced with Jinja2 `{% for %}` loop
+- [ ] `ModuleResult.extra_fields` captures non-standard module columns
+- [ ] `generate_module_table()` accepts optional column list
+- [ ] Data rows populated per student module count (Wang Wei = 2 rows)
+- [ ] Unmapped columns render as empty cells (no error)
+- [ ] Static tables (no header) left unchanged
+- [ ] `{{module_table}}` special variable still works
+- [ ] All 120+ existing tests pass
+- [ ] New tests cover table detection, column mapping, row generation
+- [ ] UAT verified with `test with table.docx` + `test.xlsx`
+
+---
+
+## Test Strategy for Sprint 7
+
+### Automated
+
+```bash
+python3 -m pytest -q  # Must remain 120+ passing + new table tests
+```
+
+### Manual UAT
+
+1. Upload `test with table.docx` → verify table detected, columns mapped
+2. Load `test.xlsx` → verify Wang Wei shows 2 table rows
+3. Preview email → verify table populated correctly
+4. Verify inline `{{variables}}` still work alongside table
+5. Verify existing non-table templates still work
+
+---
+
 # Future Roadmap
 
 ## Phase 2

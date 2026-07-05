@@ -1,8 +1,34 @@
+import os
+import subprocess
 import sys
 from pathlib import Path
 
+import PySide6
+
 root_path = Path(__file__).resolve().parent
 sys.path.insert(0, str(root_path / "src"))
+
+# ---------------------------------------------------------------------------
+# macOS: after a pkill / force-quit the cocoa plugin dylib can become
+# unloadable due to kernel code-signing cache invalidation.  The only
+# reliable fix is a quick reinstall (wheel is already cached → ~2 s).
+# We detect the problem and fix it automatically so the user never
+# sees the error.
+# ---------------------------------------------------------------------------
+if sys.platform == "darwin":
+    _plugins = Path(PySide6.__file__).parent / "Qt" / "plugins" / "platforms"
+    _cocoa = _plugins / "libqcocoa.dylib"
+    if _cocoa.exists():
+        try:
+            import ctypes
+            ctypes.CDLL(str(_cocoa.resolve()))
+        except OSError:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "--force-reinstall",
+                 "PySide6_Essentials", "--quiet", "--no-deps"],
+                check=False,
+            )
+    os.environ.setdefault("QT_QPA_PLATFORM_PLUGIN_PATH", str(_plugins))
 
 from PySide6.QtWidgets import QApplication
 from exam_email_automation.config.config_loader import ConfigLoader

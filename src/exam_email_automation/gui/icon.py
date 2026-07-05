@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QPen, QBrush
-from PySide6.QtCore import Qt, QRect, QSize
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QPainterPath, QColor, QPen
+from PySide6.QtCore import Qt, QRect
 
 
 def create_app_icon() -> QIcon:
@@ -21,7 +21,7 @@ def create_app_icon() -> QIcon:
 
     # Envelope flap (triangle)
     painter.setBrush(QColor("#1d4ed8"))
-    path = painter.createPainterPath()
+    path = QPainterPath()
     path.moveTo(4, 14)
     path.lineTo(32, 38)
     path.lineTo(60, 14)

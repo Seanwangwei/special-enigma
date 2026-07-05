@@ -42,7 +42,11 @@ class TemplateEngine:
         else:
             template_name = self._resolve_template_name(student.template_name)
         template = self.environment.get_template(template_name)
-        return template.render(**student.to_context(), module_table=self.generate_module_table(student))
+        return template.render(
+            **student.to_context(),
+            module_table=self.generate_module_table(student),
+            modules=student.modules,  # Sprint 7: for {% for module in modules %} loops
+        )
 
     def _resolve_template_name(self, template_name: str) -> str:
         name = template_name.strip()
@@ -60,10 +64,34 @@ class TemplateEngine:
         return name
 
     @staticmethod
-    def generate_module_table(student: Student) -> str:
+    def generate_module_table(student: Student, columns: list[str] | None = None) -> str:
+        """Generate an HTML table of module results.
+
+        Args:
+            student: The student whose modules to render.
+            columns: Optional list of normalised column names.  When provided,
+                     only those columns are rendered (using ``module.get()``).
+                     When None, the default 4-column output is used.
+        """
         if not student.modules:
             return "<p>No module results available.</p>"
 
+        if columns:
+            # Sprint 7: custom columns from DOCX table header
+            header = (
+                "<tr>"
+                + "".join(f"<th>{col}</th>" for col in columns)
+                + "</tr>"
+            )
+            data_rows: list[str] = []
+            for module in student.modules:
+                cells = "".join(
+                    f"<td>{module.get(col, '')}</td>" for col in columns
+                )
+                data_rows.append(f"<tr>{cells}</tr>")
+            return f"<table border=1 cellpadding=6>{header}{''.join(data_rows)}</table>"
+
+        # Default: legacy 4-column output
         rows = [
             "<tr><th>Module Code</th><th>Module Name</th><th>Assessment</th><th>Attempt</th></tr>"
         ]

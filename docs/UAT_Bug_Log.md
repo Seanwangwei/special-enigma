@@ -2,9 +2,9 @@
 
 # Exam Result Email Automation
 
-**UAT Version:** v0.5.0
+**UAT Version:** v0.6.0
 **UAT Start Date:** July 4, 2026
-**UAT Status:** 🟢 Active (Sprint 5 complete — resuming UAT)
+**UAT Status:** ⏸️ UAT Paused — Sprint 7 planning (Dynamic DOCX Table Population)
 **Tester:** Sean Wang
 
 ---
@@ -16,6 +16,10 @@
 | BUG-001 | Real registrar Excel file rejected on load | 🔴 Critical | ✅ Fixed (Sprint 5) |
 | BUG-002 | Window not resizable & default width too wide | 🟡 Medium | ✅ Fixed |
 | BUG-003 | Missing template upload & variable detection workflow | 🔴 Critical | ✅ Fixed (Sprint 5) |
+| BUG-004 | QLineEdit fields shrink with window, clipping text | 🟡 Medium | ✅ Fixed |
+| BUG-005 | DOCX variables with spaces not detected (e.g. {{First Name}}) | 🔴 Critical | ✅ Fixed |
+| BUG-006 | Excel load fails despite matching template vars — hardcoded column check | 🔴 Critical | ✅ Fixed |
+| BUG-007 | Multi-module students only show first module in extra_fields | 🔴 Critical | ✅ Fixed |
 
 ---
 
@@ -131,9 +135,193 @@ Three changes in `src/exam_email_automation/gui/main_window.py`:
 
 ---
 
+## BUG-004 — QLineEdit Fields Shrink With Window, Clipping Text
+
+**Status:** ✅ Fixed
+
+**Date Reported:** July 5, 2026
+
+**Date Fixed:** July 5, 2026
+
+**Severity:** 🟡 Medium
+
+**Description:**
+
+After loading a DOCX template or Excel file, the read-only QLineEdit fields displaying file paths shrink when the main window is resized smaller. Text inside becomes clipped and unreadable — the field boxes do not maintain a minimum width sufficient to display their content.
+
+**Root Cause:**
+
+The three read-only QLineEdit fields (`template_path_input`, `file_path_input`, `attachment_path_input`) had no `setMinimumWidth()` set. They are in QHBoxLayout rows with stretch factor 1 alongside Browse/Clear buttons. When the window shrinks, Qt shrinks the stretchable widget first, allowing the QLineEdit to collapse to near-zero width.
+
+Additionally, the subject-line `QInputDialog` (shown after uploading a DOCX with no companion YAML) and the column-mismatch `QMessageBox` had no minimum width, causing clipped text on those dialogs as well.
+
+**Fix:**
+
+Five changes in `src/exam_email_automation/gui/main_window.py`:
+
+1. `template_path_input` — Added `setMinimumWidth(180)`.
+2. `file_path_input` — Added `setMinimumWidth(180)`.
+3. `attachment_path_input` — Added `setMinimumWidth(180)`.
+4. Subject-line `QInputDialog` — Replaced `QInputDialog.getText()` static method with a manually-created dialog: `resize(520, …)` + `setMinimumWidth(480)`.
+5. Column-mismatch `QMessageBox` — Added `setMinimumWidth(520)`.
+
+**Files Modified:**
+
+- `src/exam_email_automation/gui/main_window.py` (lines 127, 153, 169, 299-312, 450)
+
+**Verification:** 120 tests pass.
+
+---
+
+## Verification — July 5, 2026
+
+All three bugs independently verified against the v0.6.0 codebase.
+
+### BUG-001 ✅
+
+The hardcoded `Validator.REQUIRED_COLUMNS` list exists only as a **fallback** (`validator.py:75-76`). When a DOCX template is uploaded, validation uses `validate_template_against_excel()` which dynamically compares template `{{variables}}` against actual Excel headers. `MismatchReport` surfaces missing/unused columns with a Continue/Cancel dialog. `Student.extra_fields` captures any column beyond the 8 known ones; `to_context()` merges them into the Jinja2 context.
+
+### BUG-002 ✅
+
+Default size changed from `900×700` to `680×680` with `setMinimumSize(480, 400)` at `main_window.py:234-235`. `QSettings` persists window geometry on close (`main_window.py:706-716`), with debounced save on resize/move (`main_window.py:728-745`).
+
+### BUG-003 ✅
+
+Complete template-first workflow implemented:
+- `docx_parser.py` — `parse_and_convert()` extracts `{{variables}}` from paragraphs + tables, converts to HTML, classifies simple vs. special
+- `template_metadata.py` — `TemplateMeta` dataclass + `load_companion_yaml()` for subject line via `.yaml`/`.yml`
+- `template_engine.py` — `ChoiceLoader` (DictLoader + FileSystemLoader) for uploaded + bundled templates
+- `main_window.py:275-359` — `_upload_docx_template()` wires full flow: parse → YAML → subject prompt → badges → engine registration
+- `main_window.py:442-496` — `_show_mismatch_dialog()` with mismatch report and Continue/Cancel
+
+No regressions. 120 tests pass.
+
+---
+
+## BUG-005 — DOCX Variables With Spaces Not Detected
+
+**Status:** ✅ Fixed
+
+**Date Reported:** July 5, 2026
+
+**Date Fixed:** July 5, 2026
+
+**Severity:** 🔴 Critical
+
+**Description:**
+
+When a DOCX template contains variables with spaces (e.g. `{{Student ID}}`, `{{First Name}}`, `{{Module Name}}`, `{{Module Code}}`), only single-word variables like `{{Surname}}` are detected. Multi-word variables are silently ignored — they don't appear as badges, don't validate against Excel columns, and don't get rendered in emails.
+
+**Root Cause:**
+
+The regex `VARIABLE_PATTERN = re.compile(r"\{\{(\w+)\}\}")` only matched `\w+` (word characters: `[a-zA-Z0-9_]`). Spaces caused the match to fail entirely.
+
+Additionally, even if detected, `{{Student ID}}` could not be rendered by Jinja2 because Jinja2 identifiers cannot contain spaces.
+
+**Fix (4 changes in `docx_parser.py`):**
+
+1. **Regex** — Changed from `r"\{\{(\w+)\}\}"` to `r"\{\{([\w\s]+)\}\}"` (allow spaces).
+2. **Whitespace stripping** — `_extract_variables_from_text()` now strips each match: `v.strip()`.
+3. **HTML normalization** — New `_normalize_placeholders()` function rewrites `{{First Name}}` → `{{first_name}}` in the HTML before Jinja2 renders it.
+4. **Classification normalization** — `_classify_variables()` now normalizes names before comparing against `SPECIAL_VARIABLES`, so `{{Module Table}}` still maps to the reserved `module_table`.
+
+**Files Modified:**
+
+- `src/exam_email_automation/templates/docx_parser.py`
+
+**Verification:** 120 tests pass. Now detects `{{Student ID}}`, `{{First Name}}`, `{{Module Name}}`, `{{Module Code}}` etc.
+
+---
+
+---
+
+## BUG-006 — Excel Load Rejected Despite Matching Template Variables
+
+**Status:** ✅ Fixed
+
+**Date Reported:** July 5, 2026
+
+**Date Fixed:** July 5, 2026
+
+**Severity:** 🔴 Critical
+
+**Description:**
+
+After uploading a DOCX template with variables like `{{Student ID}}`, `{{Surname}}`, `{{First Name}}`, `{{Module Name}}`, `{{Module Code}}` and loading an Excel file with exactly those columns, the app rejects the Excel with "Missing required columns" errors. The template-vs-Excel validation passes, but a second, hardcoded validation inside `ExcelReader.load_students()` fails because it still checks against the 12 legacy `REQUIRED_COLUMNS`.
+
+**Root Cause:**
+
+The `_load_excel()` method in `main_window.py` validates Excel headers against template variables first (correct), but then calls `excel_reader.load_students(path)` **without passing the template variables**. Inside `load_students()`, `validate_columns()` receives no `template_variables` argument and falls back to the hardcoded `REQUIRED_COLUMNS` list — which includes columns like "email", "assessment format in august", "attempt", etc. that the user's Excel doesn't have.
+
+**Fix (2 files):**
+
+1. **`main_window.py:423-425`** — Pass `template_variables` from the active `TemplateMeta` into `load_students()`.
+2. **`excel_reader.py:30-54`** — `load_students()` now accepts `template_variables` parameter, passes it to `validate_columns()`, and uses a flexible group-by column (falls back to any column matching "student_id" if "student id" isn't present).
+
+**Files Modified:**
+
+- `src/exam_email_automation/gui/main_window.py` (line 424)
+- `src/exam_email_automation/excel/excel_reader.py` (lines 30-72)
+
+**Verification:** 120 tests pass. Now DOCX template → detect variables → load matching Excel → group students → generate previews.
+
+---
+
+---
+
+## BUG-007 — Multi-Module Students Only Show First Module in Inline Variables
+
+**Status:** ✅ Fixed
+
+**Date Reported:** July 5, 2026
+
+**Date Fixed:** July 5, 2026
+
+**Severity:** 🔴 Critical
+
+**Description:**
+
+When a student has multiple module rows in the Excel (e.g., Wang Wei with "I love you" and "I hate you"), inline template variables like `{{Module Name}}` and `{{Module Code}}` only show the **first row's** values. The second module is silently dropped.
+
+**Root Cause:**
+
+In `ExcelReader._build_student()`, the `extra_fields` dict (which feeds inline template variables) was built by reading **only** `first_row` (`rows.iloc[0]`). Module-level columns like "Module Name" and "Module Code" vary per row, but only the first value was captured.
+
+**Fix:**
+
+`excel_reader.py:87-104` — `extra_fields` now collects values from **all rows** for each column, deduplicates them, and joins with `", "`. For student-level columns (same value across all rows), dedup produces a single value. For module-level columns (different values per row), they're joined: e.g. `"I love you, I hate you"`.
+
+**Before:**
+```python
+value = _safe_str(first_row.get(col, ""))  # ← only row 0
+```
+
+**After:**
+```python
+values = []
+seen = set()
+for _, row in rows.iterrows():      # ← all rows
+    val = _safe_str(row.get(col, ""))
+    if val and val not in seen:
+        values.append(val)
+        seen.add(val)
+extra_fields[key] = ", ".join(values)
+```
+
+**Files Modified:**
+
+- `src/exam_email_automation/excel/excel_reader.py` (lines 87-104)
+
+**Verification:** 120 tests pass. Wang Wei's `{{Module Name}}` now shows "I love you, I hate you".
+
+---
+
 ## Document History
 
 | Date | Change |
 |---|---|
 | July 4, 2026 | Document created. BUG-001 (open), BUG-002 (fixed) recorded. |
 | July 4, 2026 | BUG-003 added — design gap discovered during UAT. UAT paused for Sprint 5. BUG-001 root cause updated and linked to BUG-003. |
+| July 5, 2026 | BUG-004 reported and fixed — QLineEdit fields now have minimum widths (180px); QInputDialog and QMessageBox given minimum widths. UAT resumed. |
+| July 5, 2026 | BUG-005 reported and fixed — DOCX variables with spaces now detected via updated regex; HTML placeholders normalized for Jinja2 compatibility. |
+| July 5, 2026 | BUG-007 reported and fixed — extra_fields now collects values from all rows, not just first_row. |
