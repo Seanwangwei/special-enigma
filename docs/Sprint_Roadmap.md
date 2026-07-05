@@ -2,7 +2,7 @@
 
 # Exam Result Email Automation
 
-Version: 0.5.0 (Dynamic Templates) | Sprint 6 Planned (UI/UX Design System)
+Version: 1.0.0 (Sprint 8 Complete — Production Packaging & Distribution)
 
 Last Updated: July 5, 2026
 
@@ -795,6 +795,168 @@ python3 -m pytest -q  # Must remain 120+ passing + new table tests
 3. Preview email → verify table populated correctly
 4. Verify inline `{{variables}}` still work alongside table
 5. Verify existing non-table templates still work
+
+---
+
+# Sprint 8 — Production Packaging & Distribution
+
+Status: ✅ Completed
+
+## Sprint Goal
+
+Transform the application from a developer project into an installable Windows desktop application that can be used by Registrar Office staff without requiring any technical knowledge.
+
+---
+
+## User Story
+
+As a Registrar Office staff member,
+
+I want to download a single installer,
+
+so that I can install and launch the application like any other Windows software without needing Python, GitHub, or developer tools.
+
+---
+
+## Business Value
+
+Current experience:
+
+```
+GitHub
+→ Clone Repository
+→ Install Python
+→ Install Dependencies
+→ Run app.py
+```
+
+Target experience:
+
+```
+Download Setup.exe
+→ Double-click Install
+→ Desktop Shortcut Created
+→ Double-click Icon
+→ Application Launches
+```
+
+This significantly lowers the barrier to adoption and enables deployment to non-technical users.
+
+---
+
+## Technical Solution
+
+### Application Packaging
+
+Use **PyInstaller** to package the Python application into a standalone executable.
+
+Deliverables:
+
+- `ExamEmailAutomation.exe`
+- Bundled Python Runtime
+- Bundled Qt Libraries
+- Bundled Templates
+- Bundled Configuration
+- No Python installation required
+
+---
+
+### Windows Installer
+
+Use **Inno Setup** to create a professional Windows installer.
+
+Installer responsibilities:
+
+- Install application
+- Create Desktop Shortcut
+- Create Start Menu Shortcut
+- Create Uninstaller
+- Install required runtime libraries (if needed)
+- Configure application folders
+
+Output:
+
+`ExamEmailAutomation-Setup.exe`
+
+---
+
+### Application Metadata
+
+Configure:
+
+- Application Name
+- Version Number
+- Publisher
+- Application Icon
+- Product Description
+
+---
+
+### First Launch Experience
+
+On first launch automatically create:
+
+```
+preview/
+logs/
+attachments/
+```
+
+Load default configuration if none exists.
+
+---
+
+### Application Icon
+
+Create:
+
+- Desktop icon
+- Start Menu icon
+- Taskbar icon
+- Window icon
+
+---
+
+### Versioning
+
+Adopt Semantic Versioning.
+
+Examples:
+
+- `v1.0.0`
+- `v1.1.0`
+- `v2.0.0`
+
+Display version inside:
+
+```
+Help → About
+```
+
+---
+
+## Acceptance Criteria
+
+- [ ] Application installs using Setup.exe *(Windows QA — W2, W3)*
+- [ ] No Python installation required *(Windows QA — W7)*
+- [ ] Desktop shortcut created *(Windows QA — W4)*
+- [ ] Application launches successfully *(macOS QA — M9)*
+- [ ] Preview, Logs, and Attachment folders created automatically
+- [ ] Uninstaller available in Windows *(Windows QA — W5, W16)*
+- [ ] Application icon displayed correctly *(Windows QA — W15)*
+- [ ] Version information visible *(macOS QA — M3, M4)*
+
+> **Note:** All code complete. macOS QA 11/18 pass. Windows QA requires a Windows machine.
+
+---
+
+## Deliverables
+
+- ✅ Standalone EXE — PyInstaller spec (`ExamEmailAutomation.spec`) + build scripts
+- ✅ Windows Installer — Inno Setup script (`installer/ExamEmailAutomation.iss`) + build script
+- ✅ Application Icon — `resources/icon.ico` (multi-res), `resources/icon.png` (256px)
+- ✅ Version Metadata — `__version__ = "1.0.0"` + `version.py`
+- ✅ Installation Guide — README "Packaging for Windows" section
 
 ---
 

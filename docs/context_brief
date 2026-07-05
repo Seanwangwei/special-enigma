@@ -8,11 +8,11 @@ A Windows desktop app (PySide6) for university Registrar Office staff to generat
 
 ## Current State
 
-- **Version:** 0.7.0
+- **Version:** 1.0.0 (Sprint 8 — Packaging & Distribution)
 - **Tests:** 143 passing (`source .venv/bin/activate && python3 -m pytest -q`)
 - **Platform:** Windows target, macOS development (Python 3.12 venv)
 - **Branch:** main — synced with remote
-- **UAT:** Paused mid-testing (BUG-004 pending re-verification, BUG-005/006/007 fixed, Sprint 7 complete)
+- **UAT:** BUG-001–007 fixed. Sprint 8 packaging artifacts ready for Windows testing.
 
 ## Quick Commands
 
@@ -91,6 +91,7 @@ Confirm → Send → Results → Audit Log
 | 5 | ✅ Dynamic Templates — .docx upload, variable detection, dynamic validation |
 | 6 | ✅ UI/UX Design System — theme.py, styles.qss, 65 design conformance tests |
 | 7 | ✅ Dynamic DOCX Table Population — table header detection, dynamic rows, module extra_fields, 23 new tests |
+| 8 | ✅ Production Packaging & Distribution — PyInstaller EXE, Inno Setup installer, app icon, versioning, About dialog |
 
 ## Config (`config.yaml`)
 

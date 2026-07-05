@@ -1,13 +1,43 @@
-"""Generate the application window icon programmatically (no external assets needed)."""
+"""Application window icon — loads from file if available, falls back to programmatic generation."""
 
 from __future__ import annotations
+
+import sys
+from pathlib import Path
 
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QPainterPath, QColor, QPen
 from PySide6.QtCore import Qt, QRect
 
 
+def _find_icon_file(filename: str) -> Path | None:
+    """Search for an icon file in known locations (source tree and PyInstaller bundle)."""
+    # PyInstaller _MEIPASS bundle directory
+    if hasattr(sys, "_MEIPASS"):
+        candidate = Path(sys._MEIPASS) / "resources" / filename
+        if candidate.exists():
+            return candidate
+
+    # Source tree: resources/ directory relative to this file
+    candidate = Path(__file__).resolve().parent.parent.parent.parent / "resources" / filename
+    if candidate.exists():
+        return candidate
+
+    # Fallback: cwd/resources/
+    candidate = Path.cwd() / "resources" / filename
+    if candidate.exists():
+        return candidate
+
+    return None
+
+
 def create_app_icon() -> QIcon:
-    """Generate a simple envelope icon for the application."""
+    """Return the application icon, preferring a file asset over programmatic generation."""
+    # Try loading from file first (higher quality in packaged builds)
+    png_path = _find_icon_file("icon.png")
+    if png_path is not None:
+        return QIcon(str(png_path))
+
+    # Fallback: generate programmatically (no external assets needed)
     pixmap = QPixmap(64, 64)
     pixmap.fill(Qt.transparent)
 

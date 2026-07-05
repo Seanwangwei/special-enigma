@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, Signal, QSettings, QTimer
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtGui import QKeySequence, QShortcut, QAction
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -104,8 +104,12 @@ class MainWindow(QMainWindow):
         self.send_worker: Optional[SendWorker] = None
         self.preview_worker: Optional[PreviewWorker] = None
         self.template_meta: Optional[TemplateMeta] = None
+        self._template_full_path: Optional[str] = None
+        self._file_full_path: Optional[str] = None
+        self._attachment_full_text: str = ""
         self._prepare_folders()
         self._build_ui()
+        self._build_menu_bar()
         self._setup_shortcuts()
         self._load_settings()
 
@@ -126,7 +130,7 @@ class MainWindow(QMainWindow):
         template_row = QHBoxLayout()
         self.template_path_input = QLineEdit()
         self.template_path_input.setReadOnly(True)
-        self.template_path_input.setMinimumWidth(280)
+        self.template_path_input.setMinimumWidth(350)
         self.template_path_input.setPlaceholderText("Upload a Word template with {{variables}}...")
         upload_template_button = QPushButton("Browse…")
         upload_template_button.setProperty("cssClass", "secondary")
@@ -153,7 +157,7 @@ class MainWindow(QMainWindow):
         file_layout = QHBoxLayout(file_group)
         self.file_path_input = QLineEdit()
         self.file_path_input.setReadOnly(True)
-        self.file_path_input.setMinimumWidth(280)
+        self.file_path_input.setMinimumWidth(350)
         self.file_path_input.setPlaceholderText("Browse for student results spreadsheet (.xlsx)...")
         browse_excel_button = QPushButton("Browse…")
         browse_excel_button.setProperty("cssClass", "secondary")
@@ -170,7 +174,7 @@ class MainWindow(QMainWindow):
         attachment_layout = QHBoxLayout(attachment_group)
         self.attachment_path_input = QLineEdit()
         self.attachment_path_input.setReadOnly(True)
-        self.attachment_path_input.setMinimumWidth(280)
+        self.attachment_path_input.setMinimumWidth(350)
         self.attachment_path_input.setPlaceholderText("No file selected")
         browse_attachment_button = QPushButton("Browse…")
         browse_attachment_button.setProperty("cssClass", "secondary")
@@ -236,10 +240,34 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(container)
         self.resize(680, 680)
-        self.setMinimumSize(620, 480)
+        self.setMinimumSize(680, 480)
+
+    @staticmethod
+    def _elide_path(full_path: str) -> str:
+        """Show '…/filename' instead of full path so the filename is always visible."""
+        if not full_path:
+            return full_path
+        name = Path(full_path).name
+        return f"…/{name}"
+
+    def _build_menu_bar(self) -> None:
+        """Create the menu bar with Help → About."""
+        menu_bar = self.menuBar()
+        help_menu = menu_bar.addMenu("&Help")
+        about_action = QAction("&About Exam Email Automation", self)
+        about_action.triggered.connect(self._show_about_dialog)
+        help_menu.addAction(about_action)
+
+    def _show_about_dialog(self) -> None:
+        """Open the About dialog."""
+        from exam_email_automation.gui.dialogs import AboutDialog
+        dialog = AboutDialog(self)
+        self._center_dialog(dialog)
+        dialog.exec()
 
     def _clear_excel(self) -> None:
         """Clear the loaded Excel file and reset related state."""
+        self._file_full_path = None
         self.file_path_input.clear()
         self.students = []
         self.html_map = {}
@@ -257,7 +285,9 @@ class MainWindow(QMainWindow):
     def _browse_excel_file(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Select Excel File", str(Path.cwd()), "Excel Files (*.xlsx)")
         if path:
-            self.file_path_input.setText(path)
+            self._file_full_path = path
+            self.file_path_input.setText(self._elide_path(path))
+            self.file_path_input.setToolTip(path)
             self._load_excel(Path(path))
 
     def _browse_attachment(self) -> None:
@@ -265,13 +295,17 @@ class MainWindow(QMainWindow):
         if paths:
             for p in paths:
                 self.attachments.append(Path(p))
-            current = self.attachment_path_input.text()
-            if current:
-                current += "; "
-            self.attachment_path_input.setText(current + "; ".join(paths))
+            if self._attachment_full_text:
+                self._attachment_full_text += "; "
+            self._attachment_full_text += "; ".join(paths)
+            # Display elided version — show only filenames
+            elided = "; ".join(self._elide_path(p) for p in self._attachment_full_text.split("; "))
+            self.attachment_path_input.setText(elided)
+            self.attachment_path_input.setToolTip(self._attachment_full_text)
             self._append_log(f"Added {len(paths)} attachment(s): {'; '.join(paths)}")
 
     def _clear_attachments(self) -> None:
+        self._attachment_full_text = ""
         self.attachments.clear()
         self.attachment_path_input.clear()
         self._append_log("Attachments cleared.")
@@ -344,7 +378,9 @@ class MainWindow(QMainWindow):
         self.progress_label.setText("0 / 0")
 
         # Update UI
-        self.template_path_input.setText(path)
+        self._template_full_path = path
+        self.template_path_input.setText(self._elide_path(path))
+        self.template_path_input.setToolTip(path)
 
         # Show variable badges
         self._clear_template_badges()
@@ -374,6 +410,7 @@ class MainWindow(QMainWindow):
         self.template_engine.unload_uploaded_template()
         self.send_service.email_builder.override_subject = None
         self.template_meta = None
+        self._template_full_path = None
         self.template_path_input.clear()
         self._clear_template_badges()
         self.template_vars_label.setVisible(False)

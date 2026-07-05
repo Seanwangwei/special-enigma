@@ -79,15 +79,48 @@ use_default_outlook: true
 5. Send all emails.
 6. Review the log output.
 
-## Packaging
+## Packaging for Windows
 
-To package a Windows executable with PyInstaller, run on Windows:
+### Prerequisites (on a Windows machine)
 
-```bash
-pyinstaller --onefile --windowed --add-data "config.yaml;." --add-data "src/exam_email_automation/templates;templates" app.py
+- Python 3.12+
+- [Inno Setup 6+](https://jrsoftware.org/isinfo.php) (install at default path)
+- Microsoft Outlook (for Outlook integration testing)
+
+### One-command build
+
+```batch
+scripts\build_installer.bat
 ```
 
-This will create a standalone `app.exe` in the `dist/` folder.
+This produces:
+- `dist/ExamEmailAutomation/` — standalone application folder (no Python required)
+- `dist/installer/ExamEmailAutomation-Setup-v1.0.0.exe` — installer for end users
+
+### Manual build (step by step)
+
+```batch
+# 1. Install build dependencies
+pip install -r requirements-dev.txt
+
+# 2. Generate icon assets (if not already committed)
+python scripts/generate_icon.py
+
+# 3. Build executable with PyInstaller
+pyinstaller ExamEmailAutomation.spec --clean --noconfirm
+
+# 4. Build installer with Inno Setup
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ExamEmailAutomation.iss
+```
+
+### macOS development build
+
+On macOS, you can verify the PyInstaller build (SMTP delivery only, no Outlook):
+
+```bash
+./scripts/build_exe.sh
+dist/ExamEmailAutomation/ExamEmailAutomation
+```
 
 ## Testing
 
@@ -107,7 +140,7 @@ python3 -m pytest -q
 ## FAQ
 
 **Q: Does this require a Python install on the user machine?**
-A: For end users, the goal is to package the app into a standalone `.exe` so Python is not required.
+A: No. Run the installer (`Setup.exe`) and the app is ready to use. Python, Qt, and all dependencies are bundled.
 
 **Q: Can I send attachments?**
 A: Yes, select one attachment file through the Attachments picker in the GUI.

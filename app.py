@@ -35,12 +35,29 @@ from exam_email_automation.config.config_loader import ConfigLoader
 from exam_email_automation.gui.main_window import MainWindow
 
 
+def _get_bundle_dir() -> Path | None:
+    """Return the PyInstaller bundle directory if running as a packaged app, else None."""
+    if hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS)
+    return None
+
+
 def _resolve_templates_folder(config) -> None:
     """Fallback: if the configured templates folder does not exist,
-    resolve from the source package directory."""
+    resolve from the source package directory or PyInstaller bundle."""
     templates_path = getattr(config, "templates_folder", None)
     if templates_path is not None and templates_path.is_dir():
         return
+
+    # PyInstaller bundle: look under _MEIPASS/templates/
+    bundle_dir = _get_bundle_dir()
+    if bundle_dir is not None:
+        bundled_templates = bundle_dir / "templates"
+        if bundled_templates.is_dir():
+            object.__setattr__(config, "_templates_folder_original", templates_path)
+            object.__setattr__(config, "templates_folder", bundled_templates)
+            return
+
     # Try the bundled location under the source package
     fallback = root_path / "src" / "exam_email_automation" / "templates"
     if fallback.is_dir():
@@ -63,9 +80,23 @@ def main() -> None:
     from exam_email_automation.gui.icon import create_app_icon
     app.setWindowIcon(create_app_icon())
 
-    config = ConfigLoader().load()
+    # Resolve config path: cwd first, then executable/bundle directory
+    config_path: Path | None = None
+    cwd_config = Path.cwd() / "config.yaml"
+    if cwd_config.exists():
+        config_path = cwd_config
+    else:
+        bundle_dir = _get_bundle_dir()
+        search_dir = bundle_dir if bundle_dir is not None else Path(sys.argv[0]).resolve().parent
+        exe_config = search_dir / "config.yaml"
+        if exe_config.exists():
+            config_path = exe_config
+
+    config = ConfigLoader(config_path).load()
     _resolve_templates_folder(config)
     window = MainWindow(config)
+    from exam_email_automation import __version__
+    window.setWindowTitle(f"Exam Email Automation v{__version__}")
     window.show()
     app.exec()
 

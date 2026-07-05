@@ -1,0 +1,5 @@
+# Development and build dependencies for Exam Email Automation.
+# Install alongside requirements.txt for packaging workflows.
+
+pyinstaller>=6.0      # Standalone executable packaging
+pillow>=10.0           # Icon generation (scripts/generate_icon.py)

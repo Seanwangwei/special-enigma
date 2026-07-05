@@ -137,11 +137,11 @@ Three changes in `src/exam_email_automation/gui/main_window.py`:
 
 ## BUG-004 — QLineEdit Fields Shrink With Window, Clipping Text
 
-**Status:** ✅ Fixed
+**Status:** ✅ Fixed (v3 — text elision, July 5, 2026)
 
 **Date Reported:** July 5, 2026
 
-**Date Fixed:** July 5, 2026
+**Date Fixed:** July 5, 2026 (v1: min-width only). July 5, 2026 (v2: auto-scroll + tooltip + wider min). July 5, 2026 (v3: text elision — display "…/filename", store full path).
 
 **Severity:** 🟡 Medium
 
@@ -149,27 +149,24 @@ Three changes in `src/exam_email_automation/gui/main_window.py`:
 
 After loading a DOCX template or Excel file, the read-only QLineEdit fields displaying file paths shrink when the main window is resized smaller. Text inside becomes clipped and unreadable — the field boxes do not maintain a minimum width sufficient to display their content.
 
-**Root Cause:**
+**Root Cause (v1/v2 — incomplete):**
 
-The three read-only QLineEdit fields (`template_path_input`, `file_path_input`, `attachment_path_input`) had no `setMinimumWidth()` set. They are in QHBoxLayout rows with stretch factor 1 alongside Browse/Clear buttons. When the window shrinks, Qt shrinks the stretchable widget first, allowing the QLineEdit to collapse to near-zero width.
+`setMinimumWidth` alone is a dimensional floor, not a usability solution. `setCursorPosition(len(path))` only fires once when text is set and doesn't survive window resize — Qt resets the scroll position to show the beginning of the path. The filename (what users need to verify) is at the end and gets clipped.
 
-Additionally, the subject-line `QInputDialog` (shown after uploading a DOCX with no companion YAML) and the column-mismatch `QMessageBox` had no minimum width, causing clipped text on those dialogs as well.
+**Fix (v3 — text elision):**
 
-**Fix:**
-
-Five changes in `src/exam_email_automation/gui/main_window.py`:
-
-1. `template_path_input` — Added `setMinimumWidth(180)`.
-2. `file_path_input` — Added `setMinimumWidth(180)`.
-3. `attachment_path_input` — Added `setMinimumWidth(180)`.
-4. Subject-line `QInputDialog` — Replaced `QInputDialog.getText()` static method with a manually-created dialog: `resize(520, …)` + `setMinimumWidth(480)`.
-5. Column-mismatch `QMessageBox` — Added `setMinimumWidth(520)`.
+Instead of fighting Qt's scroll behavior, display an elided path that always shows the filename:
+- **Display:** `"…/filename.docx"` — short, always fits, always shows the filename
+- **Store:** Full path kept in `self._template_full_path`, `self._file_full_path`, `self._attachment_full_text`
+- **Tooltip:** Full path on hover via `setToolTip()`
+- **Min widths:** QLineEdit 350px (was 280), window 680px (was 620)
+- The QLineEdit fields are display-only — no application logic reads `.text()` from them, so elision is safe
 
 **Files Modified:**
 
-- `src/exam_email_automation/gui/main_window.py` (lines 127, 153, 169, 299-312, 450)
+- `src/exam_email_automation/gui/main_window.py` — Added `_elide_path()` helper, 3 storage vars, elided display + tooltip in all 3 file-picker methods, cleared storage in all 3 clear methods.
 
-**Verification:** 120 tests pass.
+**Verification:** 143 tests pass.
 
 ---
 
@@ -325,3 +322,5 @@ extra_fields[key] = ", ".join(values)
 | July 5, 2026 | BUG-004 reported and fixed — QLineEdit fields now have minimum widths (180px); QInputDialog and QMessageBox given minimum widths. UAT resumed. |
 | July 5, 2026 | BUG-005 reported and fixed — DOCX variables with spaces now detected via updated regex; HTML placeholders normalized for Jinja2 compatibility. |
 | July 5, 2026 | BUG-007 reported and fixed — extra_fields now collects values from all rows, not just first_row. |
+| July 5, 2026 | BUG-004 v2 — original min-width fix insufficient. Re-fixed with auto-scroll (cursor to end), tooltip, wider minimums. |
+| July 5, 2026 | BUG-004 v3 — v2 auto-scroll didn't survive window resize. Re-fixed with text elision: display "…/filename", store full path, tooltip. |
